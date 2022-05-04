@@ -1,4 +1,4 @@
-#define F_CPU16E6
+#define F_CPU 16E6
 
 #include <avr/io.h>
 #include <avr/interrupt.h>
