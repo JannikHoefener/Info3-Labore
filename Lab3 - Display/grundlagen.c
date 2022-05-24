@@ -23,6 +23,8 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 
+#define BUTTON_1_PRESS !(PIND & (1<<PIND1))
+#define BUTTON_2_PRESS !(PINB & (1<<PINB1))
 #define SPI_DDR DDRB
 #define CS      PINB2
 #define MOSI    PINB3
@@ -31,6 +33,85 @@
 #define Reset	PIND3		//display: Reset
 
 enum TFT_Orientation {TFT_Portrait, TFT_Landscape, TFT_Portrait180, TFT_Landscape180};
+enum moveDirection {right, left};
+	
+void init(){
+	DDRD &= ~(1<<1);
+	PORTD |= 1<<1;
+	// Definition des Buttons (PD1 als INPUT und Aktivierung des Pull-Up)
+	
+	DDRB &= ~(1<<1);
+	PORTB |= 1<<1;
+	// Definition des Buttons (PB1 als INPUT und Aktivierung des Pull-Up)
+
+	// Interrupt enable
+	sei();
+	
+	// Timer0 A Match enable
+	TIMSK0 |= (1<<OCIE0A);
+	OCR0A = 250;
+	// Configure CTC Mode
+	TCCR0A |= (1<<WGM01);
+	TCCR0A &= ~(1<<WGM00);
+	TCCR0B &= ~(1<<WGM02);
+	// Prescaler on 64
+	TCCR0B |= 0b11;
+	TCCR0B &= ~(1<<2);
+	// effektiv alle 1 ms haben wir einen Interrupt
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+	static volatile uint8_t counter = 0;
+	
+	// checking every millisecond if button is pressed
+	if (BUTTON_1_PRESS == 1)
+	// if button 1 is pressed, the counter is increased by one
+	{
+		counter++;
+		if (counter == 50)
+		// if button pressed for 50 ms the move function is called
+		{
+			counter = 0;
+			moveRight();
+			// while (BUTTON_1_PRESS == 1) {}
+			// gedrückt halten = bewegt bleiben
+		}
+	}
+	else if (BUTTON_2_PRESS == 1)
+	// if button 2 is pressed, the counter is increased by one
+	{
+		counter++;
+		if (counter == 50)
+		// if button pressed for 50 ms the move function is called
+		{
+			counter = 0;
+			moveLeft();
+			// while (BUTTON_2_PRESS == 1) {}
+			// gedrückt halten = bewegt bleiben
+		}
+	}
+	else 
+	{
+		counter = 0;
+	}
+}
+
+void drawYello() {
+	uint16_t i;
+	for (i=0; i<1000; i++) {
+		SPISend8Bit(0xFC);
+		// 8 bit "rot"
+	}
+}
+
+void drawRed() {
+	uint16_t i;
+	for (i=0; i<1000; i++) {
+		SPISend8Bit(0xF0);
+		// 8 bit "rot"
+	}
+}
 
 void SPI_init(){
 	//set CS, MOSI and SCK to output:
@@ -99,18 +180,45 @@ void Display_init(void) {
 uint16_t Fenster[] = {
 	0xEF08,
 	0x1800,
-	0x123C, // Position X 60 (breite / 2 - 5)
-	0x1545, // länge 10
+	0x123C, // Position X 60 (breite / 2 - 5)	muss immer um 5 verschoben werden
+	0x1545, // länge 10							muss immer X Pos + 9 sein
 	0x1352, // Position Y 82 (länge / 2 - 5)
 	0x165B  // länge 10
 };
 
+void moveRight(){
+	// prüfen, dass die Position im Rahmen liegt
+	if (Fenster[2] > 0x120A) {
+		drawYello(); // Fenster gelb färben
+		// x wert um 5 senken hier
+		Fenster[2] =- 5;
+		Fenster[3] =- 5;
+		SendCommandSeq(&Fenster[0],6);
+		
+		drawRed(); // Fenster rot färben
+	}
+}
+
+void moveLeft(){
+	// prüfen, dass die Position im Rahmen liegt
+	if (Fenster[2] < 0x1279) {
+		drawYello(); // Fenster gelb färben
+		// x wert um 5 erhöhen hier
+		Fenster[2] =+ 5;
+		Fenster[3] =+ 5;
+		SendCommandSeq(&Fenster[0],6);
+		
+		drawRed(); // Fenster rot färben
+	}
+}
+
 int main(void){
 	uint16_t i;
 	DDRD |= (1<<D_C)|(1<<Reset);		//output: PD2 -> Data/Command; PD3 -> Reset
+	init();
 	SPI_init();
 	Display_init();
-	// Display weiß färben
+	// Display gelb färben
 	for(i=0; i<23232; i++)
 	{
 		SPISend8Bit(0xFC);
@@ -122,5 +230,5 @@ int main(void){
 		// 8 bit "rot"
 	}
 	
-	while(1){}
+	while(1){}	
 }
