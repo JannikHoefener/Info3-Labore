@@ -97,9 +97,12 @@ void Display_init(void) {
 }
 
 uint16_t Fenster[] = {
-	0xEF08, 0x1800, 0x1232, 0x1543, 0x1319, 
-	0x162A 
-	// Hochformat 18 x 18 Pixel an der Position 50/25
+	0xEF08,
+	0x1800,
+	0x123C, // Position X 60 (breite / 2 - 5)
+	0x1545, // länge 10
+	0x1352, // Position Y 82 (länge / 2 - 5)
+	0x165B  // länge 10
 };
 
 int main(void){
@@ -112,22 +115,12 @@ int main(void){
 	{
 		SPISend8Bit(0xFC);
 	}
-// 	SendCommandSeq(&Fenster[0],6);
-// 	
-// 	for (i=0; i<108; i++) {
-// 		SPISend8Bit(0x1C);
-// 		// 8 bit "rot"
-// 	}
-// 	
-// 	for (i=0; i<108; i++) {
-// 		SPISend8Bit(0xFC);
-// 		// 8 bit "gelb"
-// 	}
-// 	
-// 	for (i=0; i<108; i++) {
-// 		SPISend8Bit(0x3);
-// 		// 8 bit "blau"
-// 	}
+	SendCommandSeq(&Fenster[0],6);
+	
+	for (i=0; i<1000; i++) {
+		SPISend8Bit(0xF0);
+		// 8 bit "rot"
+	}
 	
 	while(1){}
 }
