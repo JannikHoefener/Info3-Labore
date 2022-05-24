@@ -62,46 +62,42 @@ void init(){
 
 ISR(TIMER0_COMPA_vect)
 {
-	static volatile uint8_t counter = 0;
+	static volatile uint8_t counter1 = 0;
+	static volatile uint8_t counter2 = 0;
 	
 	// checking every millisecond if button is pressed
 	if (BUTTON_1_PRESS == 1)
 	// if button 1 is pressed, the counter is increased by one
 	{
-		counter++;
-		if (counter == 50)
-		// if button pressed for 50 ms the move function is called
-		{
-			counter = 0;
+		counter1++;
+		if (counter1 == 250) {
+		// if button pressed for 250 ms the move function is called
+			counter1 = 0;
 			moveRight();
-			// while (BUTTON_1_PRESS == 1) {}
-			// gedrückt halten = bewegt bleiben
 		}
+	} else {
+	counter1 = 0;
 	}
-	else if (BUTTON_2_PRESS == 1)
+	if (BUTTON_2_PRESS == 1)
 	// if button 2 is pressed, the counter is increased by one
 	{
-		counter++;
-		if (counter == 50)
-		// if button pressed for 50 ms the move function is called
-		{
-			counter = 0;
+		counter2++;
+		if (counter2 == 250) {
+		// if button pressed for 250 ms the move function is called
+			counter2 = 0;
 			moveLeft();
-			// while (BUTTON_2_PRESS == 1) {}
-			// gedrückt halten = bewegt bleiben
 		}
-	}
-	else 
-	{
-		counter = 0;
-	}
+	} else {
+	counter2 = 0;
+}
+	
 }
 
 void drawYello() {
 	uint16_t i;
 	for (i=0; i<1000; i++) {
 		SPISend8Bit(0xFC);
-		// 8 bit "rot"
+		// 8 bit "gelb"
 	}
 }
 
