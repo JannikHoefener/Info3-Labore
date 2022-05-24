@@ -49,7 +49,7 @@ void SPISend8Bit(uint8_t data){
 
 void SPISend16Bit(uint16_t data){
 	uint8_t SendeByte;
-	SendeByte = (data >> 8) & 0xFF;	//High-Byte des Kommandos
+	SendeByte = (data >> 8) & 0xFF;		//High-Byte des Kommandos
 	SPISend8Bit(SendeByte);
 	
 	SendeByte = data & 0xFF;			//Low-Byte des Kommandos
@@ -109,10 +109,10 @@ uint16_t Fenster[] = {
 
 	0xEF08, 
 	0x1805, 
-	0x1268, 
-	0x151C, 
-	0x1312, 
-	0x169D,
+	0x1268, // x1
+	0x151D, // x2
+	0x1312, // y1
+	0x169D, // y2
 };
 
 int main(void){
@@ -133,7 +133,7 @@ int main(void){
 	}
 	
 	//Rechteck mit Bild übermalen
-	for (int i = 0; i <= 2904; i++){
+	for (int i = 0; i <= 2900; i++){
 		if (Bild1[i] == Bild1[i+1]){
 			SPISend16Bit(Bild1[i]);
 
