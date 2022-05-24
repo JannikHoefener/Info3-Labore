@@ -31,9 +31,19 @@
 #define SCK     PINB5
 #define D_C		PIND2		//display: Data/Command
 #define Reset	PIND3		//display: Reset
+#define LED_ON PORTC|= (1<<1)
+#define LED_OFF PORTC &= ~(1<<1)
+#define LED_TOGGLE PINC |= (1<<1)
 
 enum TFT_Orientation {TFT_Portrait, TFT_Landscape, TFT_Portrait180, TFT_Landscape180};
 enum moveDirection {right, left};
+	
+const uint8_t TFT_MAX_X = 131;
+const uint8_t TFT_MAX_Y = 175;
+uint8_t x1_coord = 0x3C; // Position X 60 (breite / 2 - 5)
+uint8_t x2_coord = 0x45; // länge 10
+uint8_t y1_coord = 0x52; // Position Y 82 (länge / 2 - 5)
+uint8_t y2_coord = 0x5B; 
 	
 void init(){
 	DDRD &= ~(1<<1);
@@ -43,6 +53,9 @@ void init(){
 	DDRB &= ~(1<<1);
 	PORTB |= 1<<1;
 	// Definition des Buttons (PB1 als INPUT und Aktivierung des Pull-Up)
+	
+	DDRC |= (1<<1);  // Configure PC1 as Output
+	LED_OFF;
 
 	// Interrupt enable
 	sei();
@@ -66,34 +79,37 @@ ISR(TIMER0_COMPA_vect)
 	static volatile uint8_t counter2 = 0;
 	
 	// checking every millisecond if button is pressed
-	if (BUTTON_1_PRESS == 1)
+	if (BUTTON_1_PRESS)
 	// if button 1 is pressed, the counter is increased by one
 	{
 		counter1++;
 		if (counter1 == 250) {
 		// if button pressed for 250 ms the move function is called
 			counter1 = 0;
-			moveRight();
+			moveX(right);
 		}
 	} else {
 	counter1 = 0;
 	}
-	if (BUTTON_2_PRESS == 1)
+	
+	if (counter1 > 0) {LED_ON;} else {LED_OFF;};
+	
+	
+	if (BUTTON_2_PRESS)
 	// if button 2 is pressed, the counter is increased by one
 	{
 		counter2++;
 		if (counter2 == 250) {
 		// if button pressed for 250 ms the move function is called
 			counter2 = 0;
-			moveLeft();
+			moveX(left);
 		}
 	} else {
 	counter2 = 0;
-}
-	
+	}	
 }
 
-void drawYello() {
+void drawYellow() {
 	uint16_t i;
 	for (i=0; i<1000; i++) {
 		SPISend8Bit(0xFC);
@@ -176,37 +192,11 @@ void Display_init(void) {
 uint16_t Fenster[] = {
 	0xEF08,
 	0x1800,
-	0x123C, // Position X 60 (breite / 2 - 5)	muss immer um 5 verschoben werden
-	0x1545, // länge 10							muss immer X Pos + 9 sein
+	0x123C, // Position X 60 (breite / 2 - 5)
+	0x1545, // länge 10
 	0x1352, // Position Y 82 (länge / 2 - 5)
 	0x165B  // länge 10
 };
-
-void moveRight(){
-	// prüfen, dass die Position im Rahmen liegt
-	if (Fenster[2] > 0x120A) {
-		drawYello(); // Fenster gelb färben
-		// x wert um 5 senken hier
-		Fenster[2] =- 5;
-		Fenster[3] =- 5;
-		SendCommandSeq(&Fenster[0],6);
-		
-		drawRed(); // Fenster rot färben
-	}
-}
-
-void moveLeft(){
-	// prüfen, dass die Position im Rahmen liegt
-	if (Fenster[2] < 0x1279) {
-		drawYello(); // Fenster gelb färben
-		// x wert um 5 erhöhen hier
-		Fenster[2] =+ 5;
-		Fenster[3] =+ 5;
-		SendCommandSeq(&Fenster[0],6);
-		
-		drawRed(); // Fenster rot färben
-	}
-}
 
 int main(void){
 	uint16_t i;
@@ -228,3 +218,72 @@ int main(void){
 	
 	while(1){}	
 }
+
+// TFT Window Funktion aus der Vorlesung
+void TFT_Window(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, enum TFT_Orientation orientation) {
+	uint16_t data[] =
+	{
+		0xEF08,
+		0x1800,
+		0x1200, // x1
+		0x1500, // x2
+		0x1300, // y1
+		0x1600, // y2
+	};
+	
+	switch(orientation) {
+		default:
+		case TFT_Portrait:
+		data[2] |= x1;
+		data[3] |= x2;
+		data[4] |= y1;
+		data[5] |= y2;
+		break;
+		case TFT_Portrait180:
+		data[1] |= 0x03;
+		data[2] |= TFT_MAX_X - x1;
+		data[3] |= TFT_MAX_X - x2;
+		data[4] |= TFT_MAX_Y - y1;
+		data[5] |= TFT_MAX_Y - y2;
+		break;
+		case TFT_Landscape:
+		data[1] |= 0x05;
+		data[2] |= TFT_MAX_X - y1;
+		data[3] |= TFT_MAX_X - y2;
+		data[4] |= x1;
+		data[5] |= x2;
+		break;
+		case TFT_Landscape180:
+		data[1] |= 0x03;
+		data[2] |= y1;
+		data[3] |= y2;
+		data[4] |= TFT_MAX_Y - x1;
+		data[5] |= TFT_MAX_Y - x2;
+		break;
+	}
+	SendCommandSeq(data, 6);
+}
+
+void moveX(enum moveDirection richtung) {
+	drawYellow();
+	
+	switch (richtung) {
+		right:
+			if (x1_coord != 0)
+			{
+				x1_coord = x1_coord - 1;
+				x2_coord = x2_coord - 1;
+			}
+			break;
+		left:
+			if (x2_coord != TFT_MAX_X)
+			{
+				x1_coord = x1_coord + 1;
+				x2_coord = x2_coord + 1;
+			}
+			break;
+	};
+	
+	TFT_Window(x1_coord, y1_coord, x2_coord, y2_coord, TFT_Portrait180);
+	drawRed();
+};
