@@ -32,7 +32,7 @@ void SPISend8Bit(uint8_t data){
 }
 
 void Display_init(void) {
-		uint16_t InitData[] ={
+	uint16_t InitData[] ={
 		//Initialisierungsdaten fuer 16Bit-Farben-Modus
 		0xFDFD, 0xFDFD,
 		/* pause */
@@ -90,9 +90,9 @@ void init(void){
 	PORTB |= 1<<1;
 	
 	// Poti als Input setzen
-	DDRC &= ~(1<<0); // configure PC0 als Input
-	ADMUX = 0b01100000; // ADC left justified, AVCC as reference
-	ADCSRA = 0b10000111; // enable ADC, set prescaler to max (128)
+	// ADC
+	ADMUX= 0x40;// AVCC on; Right adjust;MUXuse A0
+	ADCSRA= 0xC7;// ADC enable; Stop Conversion; No Autotrigger; Interrupt disable; Prescaler= 128 means 125 kHz
 	
 	// Interrupts aktivieren
 	sei();
@@ -107,7 +107,7 @@ void init(void){
 	TCCR0B |=(1<<CS02) | (1<<CS00);
 	TCCR0B &= ~(1<<CS01);
 	
-	asm("nop"); 
+	asm("nop");
 }
 
 void timerOn(void){
@@ -123,31 +123,31 @@ void timerOff(void){
 // Timer Interrupt alle 10 ms
 //ISR(TIMER0_COMPA_vect)
 //{
-	//static volatile uint8_t counter = 0;
-	//counter++;
-	//// da der Interrupt alle 10 ms kommt und wir aber nur einmal pro Sekunde
-	//// wirklich was machen wollen, zählen wir halt bis 100. (100*10 ms = 1 s)
-	//if (counter == 100)	{
-		//counter = 0;
-		//
-		//switch(state) {
-			//case 3: // State Timer Phase
-				//
-				//break;
-			//case 4: // State Buzzer Signal
-				//
-				//break;
-			//case 5: // State Timer Phase
-			//
-				//break;
-			//case 6: // State Buzzer Signal
-			//
-				//break;
-			//case 7: // State reset
-				//
-				//break;
-		//}
-		//
+//static volatile uint8_t counter = 0;
+//counter++;
+//// da der Interrupt alle 10 ms kommt und wir aber nur einmal pro Sekunde
+//// wirklich was machen wollen, zählen wir halt bis 100. (100*10 ms = 1 s)
+//if (counter == 100)	{
+//counter = 0;
+//
+//switch(state) {
+//case 3: // State Timer Phase
+//
+//break;
+//case 4: // State Buzzer Signal
+//
+//break;
+//case 5: // State Timer Phase
+//
+//break;
+//case 6: // State Buzzer Signal
+//
+//break;
+//case 7: // State reset
+//
+//break;
+//}
+//
 //}
 
 void displayMessage(int messageID) {
@@ -156,25 +156,25 @@ void displayMessage(int messageID) {
 	
 	switch(messageID) {
 		case 0:
-			message1 = "";
-			message2 = "";
-			break;
+		message1 = "";
+		message2 = "";
+		break;
 		case 1:
-			message1 = "Willkommen";
-			message2 = "";
-			break;
-		case 2: 
-			message1 = "Poti drehen";
-			message2 = "Button drücken";
-			break;
+		message1 = "Willkommen";
+		message2 = "";
+		break;
+		case 2:
+		message1 = "Poti drehen";
+		message2 = "Button drücken";
+		break;
 		case 3:
-			message1 = "Konzentration!";
-			message2 = "Bald geschafft";
-			break;
+		message1 = "Konzentration!";
+		message2 = "Bald geschafft";
+		break;
 		default:
-			message1 = "Fehler!";
-			message2 = "";
-			break;
+		message1 = "Fehler!";
+		message2 = "";
+		break;
 	}
 	// Nachdem die entsprechende Nachricht eingefügt wurde, kann diese
 	// auf das Display übertragen werden:
@@ -182,17 +182,11 @@ void displayMessage(int messageID) {
 	TFT_Print(message2, 4, 114, 2, TFT_16BitDark_Blue, TFT_16BitWhite, TFT_Landscape180);
 }
 
-int readPoti(void) {
-	// Start ADC Conversion by setting ADSC bit (bit 6)
-	ADCSRA = ADCSRA | (1 << ADSC);
-	// Wait until the ADSC bit has been cleared
-	while (ADCSRA & (1 << ADSC ));
-	
-	uint16_t
-	x = ADCL;
-	x += (ADCH<<8);
-	
-	TFT_Print(x, 4, 6, 2, TFT_16BitRed, TFT_16BitWhite, TFT_Landscape180);
+uint16_t readPoti(void) {
+	//select ADC channel with safety mask
+	ADCSRA|= (1 << ADSC);// Start conversion
+	while(ADCSRA& (1<<ADSC)); // wait while
+	return ADC;
 }
 
 int main(void){
@@ -211,10 +205,15 @@ int main(void){
 	
 	// State 2 - Konfiguraton
 	
-	displayMessage(2); 
+	displayMessage(2);
 	// messwert über Poti auslesen erhalten
-	// int messwert = readPoti();
-	
+	//while (!BUTTON_2_PRESS){
+		//uint16_t temp = readPoti();
+		//char* t = temp;
+		//TFT_Print(t, 30, 30, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
+	//}
+	uint16_t messwert = readPoti();
+	TFT_Print(messwert, 30, 30, 2, TFT_16BitBlack, TFT_16BitWhite, TFT_Landscape180);
 	// messwert in die Variablen schreiben
 	
 	
@@ -228,6 +227,6 @@ int main(void){
 	
 	
 	// char mytext1[] = "00:00";
-		//Übergabe von 7 "Werten": Adresse des 1. Elements von mytext, x1, y1, scale,
+	//Übergabe von 7 "Werten": Adresse des 1. Elements von mytext, x1, y1, scale,
 	// TFT_Print(mytext1, 25, 44, 4, TFT_16BitBlack, TFT_16BitWhite, TFT_Landscape180);		//Schriftfarbe, Hintergrundfarbe, Display-Orientierung
 }
