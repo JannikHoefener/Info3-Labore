@@ -13,7 +13,7 @@
 
 uint16_t i;
 unsigned int state = 0;
-unsigned int timer = 100;
+unsigned int timer = 0;
 unsigned int messwert = 1200;
 
 void SPI_init()
@@ -133,7 +133,7 @@ ISR(TIMER0_COMPA_vect)
 		counter = 0;
 
 		// debug stuff
-		TFT_Print("Timer läuft", 30, 50, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
+		// TFT_Print("Timer läuft", 30, 50, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
 		
 		// timer um eins senken
 		timer--;
@@ -216,7 +216,8 @@ int main(void){
 		uint16_t temp = readPoti();
 		
 		if (temp < 128) {
-			messwert = 1200; // 20 Min
+			// messwert = 1200; // 20 Min
+			messwert = 20; // 20 s for dev
 		} else if (temp < 256) {
 			messwert = 1500; // 25 Min 
 		} else if (temp < 384) {
@@ -242,7 +243,8 @@ int main(void){
 		// TFT_Print(snum, 30, 30, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
 	}
 	// messwert in die Variablen schreiben
-	
+	timer = messwert;
+	displayMessage(0);
 	
 	state++;
 
