@@ -13,6 +13,8 @@
 
 uint16_t i;
 unsigned int state = 0;
+unsigned int timer = 100;
+unsigned int messwert = 1200;
 
 void SPI_init()
 {
@@ -91,7 +93,7 @@ void init(void){
 	
 	// Poti als Input setzen
 	// ADC
-	ADMUX= 0x40;// AVCC on; Right adjust;MUXuse A0
+	ADMUX= 0x100040;// AVCC on; Right adjust;MUXuse A0
 	ADCSRA= 0xC7;// ADC enable; Stop Conversion; No Autotrigger; Interrupt disable; Prescaler= 128 means 125 kHz
 	
 	// Interrupts aktivieren
@@ -121,34 +123,25 @@ void timerOff(void){
 }
 
 // Timer Interrupt alle 10 ms
-//ISR(TIMER0_COMPA_vect)
-//{
-//static volatile uint8_t counter = 0;
-//counter++;
-//// da der Interrupt alle 10 ms kommt und wir aber nur einmal pro Sekunde
-//// wirklich was machen wollen, zählen wir halt bis 100. (100*10 ms = 1 s)
-//if (counter == 100)	{
-//counter = 0;
-//
-//switch(state) {
-//case 3: // State Timer Phase
-//
-//break;
-//case 4: // State Buzzer Signal
-//
-//break;
-//case 5: // State Timer Phase
-//
-//break;
-//case 6: // State Buzzer Signal
-//
-//break;
-//case 7: // State reset
-//
-//break;
-//}
-//
-//}
+ISR(TIMER0_COMPA_vect)
+{
+	static volatile uint8_t counter = 0;
+	counter++;
+	// da der Interrupt alle 10 ms kommt und wir aber nur einmal pro Sekunde
+	// wirklich was machen wollen, zählen wir halt bis 100. (100*10 ms = 1 s)
+	if (counter == 100)	{
+		counter = 0;
+
+		// debug stuff
+		TFT_Print("Timer läuft", 30, 50, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
+		
+		// timer um eins senken
+		timer--;
+		// display aktualisieren
+		displayTimer(timer);
+		
+	}
+}
 
 void displayMessage(int messageID) {
 	char* message1;
@@ -182,8 +175,17 @@ void displayMessage(int messageID) {
 	TFT_Print(message2, 4, 114, 2, TFT_16BitDark_Blue, TFT_16BitWhite, TFT_Landscape180);
 }
 
+void displayTimer(int sekunden) {
+	int minutes = sekunden / 60;
+	int seconds = sekunden % 60;
+	
+	char anzeige[6];
+	snprintf(anzeige, sizeof(anzeige), "%02d:%02d\n", minutes, seconds);
+	
+	TFT_Print(anzeige, 25, 44, 4, TFT_16BitBlack, TFT_16BitWhite, TFT_Landscape180);
+}
+
 uint16_t readPoti(void) {
-	//select ADC channel with safety mask
 	ADCSRA|= (1 << ADSC);// Start conversion
 	while(ADCSRA& (1<<ADSC)); // wait while
 	return ADC;
@@ -206,21 +208,46 @@ int main(void){
 	// State 2 - Konfiguraton
 	
 	displayMessage(2);
+	// warten bis knopf losgelassen
+	while (BUTTON_2_PRESS){;};
+	
 	// messwert über Poti auslesen erhalten
-	//while (!BUTTON_2_PRESS){
-		//uint16_t temp = readPoti();
-		//char* t = temp;
-		//TFT_Print(t, 30, 30, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
-	//}
-	uint16_t messwert = readPoti();
-	TFT_Print(messwert, 30, 30, 2, TFT_16BitBlack, TFT_16BitWhite, TFT_Landscape180);
+	while (!BUTTON_2_PRESS){
+		uint16_t temp = readPoti();
+		
+		if (temp < 128) {
+			messwert = 1200; // 20 Min
+		} else if (temp < 256) {
+			messwert = 1500; // 25 Min 
+		} else if (temp < 384) {
+			messwert = 1800; // 30 Min
+		} else if (temp < 512) {
+			messwert = 2100; // 35 Min
+		} else if (temp < 640) {
+			messwert = 2400; // 40 Min
+		} else if (temp < 768) {
+			messwert = 2700; // 45 Min
+		} else if (temp < 896) {
+			messwert = 3000; // 50 Min
+		} else {
+			messwert = 3300; // 55 Min
+		}
+		
+		displayTimer(messwert);
+		
+		char snum[5];
+		itoa(messwert, snum, 10);
+		
+		
+		// TFT_Print(snum, 30, 30, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
+	}
 	// messwert in die Variablen schreiben
 	
 	
 	state++;
 
 	// State 3 - Work Timer Phase
-	timerOn;
+	timerOn();
 	// ab hier muss die Main() Funktion nichts mehr machen,
 	// wird daher in eine unendliche while true schleife geschickt
 	while(1){;}
@@ -230,3 +257,8 @@ int main(void){
 	//Übergabe von 7 "Werten": Adresse des 1. Elements von mytext, x1, y1, scale,
 	// TFT_Print(mytext1, 25, 44, 4, TFT_16BitBlack, TFT_16BitWhite, TFT_Landscape180);		//Schriftfarbe, Hintergrundfarbe, Display-Orientierung
 }
+
+
+// convert 123 to string [buf]
+// char snum[5];
+// itoa(temp, snum, 10);
