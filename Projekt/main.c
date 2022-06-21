@@ -11,6 +11,7 @@
 #include "tft.h"
 
 #define BUTTON_2_PRESS !(PINB & (1<<PINB1))
+#define BUTTON_1_PRESS !(PIND & (1<<PIND1))
 
 uint16_t i;
 unsigned int state = 0;
@@ -114,6 +115,10 @@ void init(void){
 	TCCR0B |=(1<<CS02) | (1<<CS00);
 	TCCR0B &= ~(1<<CS01);
 	
+	// Button 1 Interrupt
+	PCICR |= (1<<PCIE2); // enable PB Port D interrupt
+	PCMSK2 |= 1<<PCINT17; // enable PB17 interrupt
+	
 	asm("nop");
 }
 
@@ -214,6 +219,15 @@ ISR(TIMER0_COMPA_vect)
 		}
 		
 	}
+}
+
+// Button 1 Interrupt
+ISR(PCINT2_vect) {
+	timerOff();
+	timer = 0; // sane
+	// Zurück zur Konfiguration
+	state = 2;
+	configuration();
 }
 
 void displayMessage(int messageID) {
