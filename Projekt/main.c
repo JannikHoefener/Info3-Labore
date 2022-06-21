@@ -6,6 +6,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
+#include <avr/wdt.h>
 #include "spi.h"
 #include "tft.h"
 
@@ -15,6 +16,9 @@ uint16_t i;
 unsigned int state = 0;
 unsigned int timer = 0;
 unsigned int messwert = 1200;
+
+unsigned int pausenzeit = 6;// default 300 s für 5 Min
+unsigned int endzeit = 10;	// default 10 s 
 
 void SPI_init()
 {
@@ -70,6 +74,7 @@ void Display_init(void) {
 }
 
 void init(void){
+	wdt_disable();
 	// alles was einmal zum start erledigt werden muss
 	DDRD |= (1<<D_C)|(1<<Reset);		//output: PD2 -> Data/Command; PD3 -> Reset
 	SPI_init();
@@ -120,7 +125,7 @@ void timerOn(void){
 
 void timerOff(void){
 	// timer ausschalten, contains bug
-	TIMSK0 |= (0<<OCIE0A);
+	TIMSK0 &= ~(1<<OCIE0A);
 	OCR0A = 0;
 }
 
@@ -179,7 +184,7 @@ ISR(TIMER0_COMPA_vect)
 					// Pause
 					buzzerOff();
 					// timer = 300; dev
-					timer = 8;
+					timer = pausenzeit;
 					displayMessage(4);
 					state = 5; // übergabe zu state 5
 					// timerOn();
@@ -194,14 +199,16 @@ ISR(TIMER0_COMPA_vect)
 				case 6:
 					// Ende
 					buzzerOff();
-					timer = 10;
+					timer = endzeit;
 					displayMessage(5);
 					state = 7; // übergabe zu state 7
 					// timerOn();
 					break;
 				case 7:
-					// Neustart
-					// reset();
+					// Neustart ist keine Option, die State Machine springt zurück in State
+					timerOff();
+					state = 2;
+					configuration();
 					break;
 			}
 		}
@@ -266,6 +273,49 @@ uint16_t readPoti(void) {
 	return ADC;
 }
 
+void configuration(void){
+	displayMessage(2);
+	// messwert über Poti auslesen erhalten
+	while (!BUTTON_2_PRESS){
+		uint16_t temp = readPoti();
+		
+		if (temp < 128) {
+			// messwert = 1200; // 20 Min
+			messwert = 6; // 6 s for dev
+			} else if (temp < 256) {
+			messwert = 1500; // 25 Min
+			} else if (temp < 384) {
+			messwert = 1800; // 30 Min
+			} else if (temp < 512) {
+			messwert = 2100; // 35 Min
+			} else if (temp < 640) {
+			messwert = 2400; // 40 Min
+			} else if (temp < 768) {
+			messwert = 2700; // 45 Min
+			} else if (temp < 896) {
+			messwert = 3000; // 50 Min
+			} else {
+			messwert = 3300; // 55 Min
+		}
+		
+		displayTimer(messwert);
+		
+		char snum[5];
+		itoa(messwert, snum, 10);
+		
+		
+		// TFT_Print(snum, 30, 30, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
+	}
+	
+	// messwert in die Variablen schreiben
+	timer = messwert;
+	displayMessage(0);
+	
+	timerOn();
+	// entering State 3 - Work Timer Phase
+	state = 3;
+}
+
 int main(void){
 	// State 0 - Init Phase
 	state = 0;
@@ -285,46 +335,8 @@ int main(void){
 	displayMessage(2);
 	// warten bis knopf losgelassen
 	while (BUTTON_2_PRESS){;};
-	
-	// messwert über Poti auslesen erhalten
-	while (!BUTTON_2_PRESS){
-		uint16_t temp = readPoti();
+	configuration();
 		
-		if (temp < 128) {
-			// messwert = 1200; // 20 Min
-			messwert = 6; // 6 s for dev
-		} else if (temp < 256) {
-			messwert = 1500; // 25 Min 
-		} else if (temp < 384) {
-			messwert = 1800; // 30 Min
-		} else if (temp < 512) {
-			messwert = 2100; // 35 Min
-		} else if (temp < 640) {
-			messwert = 2400; // 40 Min
-		} else if (temp < 768) {
-			messwert = 2700; // 45 Min
-		} else if (temp < 896) {
-			messwert = 3000; // 50 Min
-		} else {
-			messwert = 3300; // 55 Min
-		}
-		
-		displayTimer(messwert);
-		
-		char snum[5];
-		itoa(messwert, snum, 10);
-		
-		
-		// TFT_Print(snum, 30, 30, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
-	}
-	// messwert in die Variablen schreiben
-	timer = messwert;
-	displayMessage(0);
-	
-	state = 3;
-
-	// State 3 - Work Timer Phase
-	timerOn();
 	// ab hier muss die Main() Funktion nichts mehr machen,
 	// wird daher in eine unendliche while true schleife geschickt
 	while(1){;}
