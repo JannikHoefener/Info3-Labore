@@ -100,7 +100,7 @@ void init(void){
 	sei();
 	// Timer0 A Match Disable
 	TIMSK0 |= (0<<OCIE0A);
-	OCR0A = 155; //OCR => wann match
+	OCR0A = 0; //OCR => wann match
 	// Configure CTC (Clear Timer on Compare) Mode
 	TCCR0A |= (1<<WGM01);
 	TCCR0A &= ~(1<<WGM00);
@@ -115,11 +115,34 @@ void init(void){
 void timerOn(void){
 	// timer anschalten
 	TIMSK0 |= (1<<OCIE0A);
+	OCR0A = 155;
 }
 
 void timerOff(void){
-	// timer ausschalten
+	// timer ausschalten, contains bug
 	TIMSK0 |= (0<<OCIE0A);
+	OCR0A = 0;
+}
+
+void buzzerOn(void) {
+	// buzzer anschalten
+}
+void buzzerOff(void) {
+	// buzzer ausschalten
+}
+
+void showOff(void) {
+	// LED rot und grün ausschalten
+}
+
+void showRed(void) {
+	showOff();
+	// rote LED anschalten 
+}
+
+void showGreen(void) {
+	showOff();
+	// grüne LED anschalten
 }
 
 // Timer Interrupt alle 10 ms
@@ -140,6 +163,49 @@ ISR(TIMER0_COMPA_vect)
 		// display aktualisieren
 		displayTimer(timer);
 		
+		if (timer < 1) {
+			// timer wird IMMER ausgeschaltet, falls benötigt, danach wieder angeschaltet.
+			// timerOff();
+			
+			switch (state) {
+				case 3:
+					// Buzzer output für 1 sek
+					buzzerOn();
+					timer = 1;
+					state = 4; // übergabe zu state 4
+					// timerOn();
+					break;
+				case 4:
+					// Pause
+					buzzerOff();
+					// timer = 300; dev
+					timer = 8;
+					displayMessage(4);
+					state = 5; // übergabe zu state 5
+					// timerOn();
+					break;
+				case 5:
+					// Buzzer output für 1 sek
+					buzzerOn();
+					timer = 1;
+					state = 6; // übergabe zu state 6
+					// timerOn();
+					break;
+				case 6:
+					// Ende
+					buzzerOff();
+					timer = 10;
+					displayMessage(5);
+					state = 7; // übergabe zu state 7
+					// timerOn();
+					break;
+				case 7:
+					// Neustart
+					// reset();
+					break;
+			}
+		}
+		
 	}
 }
 
@@ -149,25 +215,34 @@ void displayMessage(int messageID) {
 	
 	switch(messageID) {
 		case 0:
-		message1 = "";
-		message2 = "";
-		break;
+			message1 = "              ";
+			message2 = "              ";
+			break;
 		case 1:
-		message1 = "Willkommen";
-		message2 = "";
-		break;
+			message1 = "  Willkommen  ";
+			message2 = "              ";
+			break;
 		case 2:
-		message1 = "Poti drehen";
-		message2 = "Button drücken";
-		break;
+			message1 = "Poti drehen   ";
+			message2 = "Button drücken";
+			break;
 		case 3:
-		message1 = "Konzentration!";
-		message2 = "Bald geschafft";
-		break;
+			message1 = "Konzentration!";
+			message2 = "Bald geschafft";
+			break;
+		case 4:
+			message1 = "     Pause    ";
+			message2 = "  Bis gleich  ";
+			break;
+		case 5:
+			message1 = "  Geschafft!  ";
+			message2 = "   nochmal?   ";
+			break;
 		default:
-		message1 = "Fehler!";
-		message2 = "";
-		break;
+			message1 = "  ! Fehler !  ";
+			message2 = "              ";
+			break;
+		
 	}
 	// Nachdem die entsprechende Nachricht eingefügt wurde, kann diese
 	// auf das Display übertragen werden:
@@ -197,15 +272,15 @@ int main(void){
 	init();
 	
 	// todo: Serial Out?
-	state++;
 	
 	// State 1 - Willkommen Nachricht
+	state = 1;
 	displayMessage(1); // Nachricht aufs Display schicken
 	
 	while (!BUTTON_2_PRESS){;};
-	state++;
 	
 	// State 2 - Konfiguraton
+	state = 2;
 	
 	displayMessage(2);
 	// warten bis knopf losgelassen
@@ -217,7 +292,7 @@ int main(void){
 		
 		if (temp < 128) {
 			// messwert = 1200; // 20 Min
-			messwert = 20; // 20 s for dev
+			messwert = 6; // 6 s for dev
 		} else if (temp < 256) {
 			messwert = 1500; // 25 Min 
 		} else if (temp < 384) {
@@ -246,7 +321,7 @@ int main(void){
 	timer = messwert;
 	displayMessage(0);
 	
-	state++;
+	state = 3;
 
 	// State 3 - Work Timer Phase
 	timerOn();
