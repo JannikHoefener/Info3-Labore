@@ -18,8 +18,8 @@ unsigned int state = 0;
 unsigned int timer = 0;
 unsigned int messwert = 1200;
 
-unsigned int pausenzeit = 6;// default 300 s fÃ¼r 5 Min
-unsigned int endzeit = 10;	// default 10 s 
+unsigned int pausenzeit = 6;// default 300 s für 5 Min
+unsigned int endzeit = 10;	// default 10 s
 
 void SPI_init()
 {
@@ -81,13 +81,13 @@ void init(void){
 	SPI_init();
 	sei();
 	Display_init();
-	//Display-Hintergrundfarbe Ã¼bertragen:
+	//Display-Hintergrundfarbe übertragen:
 	int x;
 	for(x=0; x<23232; x++){
-		SPISend8Bit(0xFF); 				//senden von 1. 8-Bit-Wert fÃ¼r weiÃŸ
-		SPISend8Bit(0xFF); 				//senden von 2. 8-Bit-Wert fÃ¼r weiÃŸ
+		SPISend8Bit(0xFF); 				//senden von 1. 8-Bit-Wert für weiß
+		SPISend8Bit(0xFF); 				//senden von 2. 8-Bit-Wert für weiß
 	}
-	// Ãœbertragen der Ãœberschrift auf das Display
+	// Übertragen der Überschrift auf das Display
 	char mytext[]  = "Pomodoro-Timer";
 	TFT_Print(&mytext[0], 4, 6, 2, TFT_16BitRed, TFT_16BitWhite, TFT_Landscape180);
 	
@@ -142,17 +142,17 @@ void buzzerOff(void) {
 }
 
 void showOff(void) {
-	// LED rot und grÃ¼n ausschalten
+	// LED rot und grün ausschalten
 }
 
 void showRed(void) {
 	showOff();
-	// rote LED anschalten 
+	// rote LED anschalten
 }
 
 void showGreen(void) {
 	showOff();
-	// grÃ¼ne LED anschalten
+	// grüne LED anschalten
 }
 
 // Timer Interrupt alle 10 ms
@@ -161,12 +161,12 @@ ISR(TIMER0_COMPA_vect)
 	static volatile uint8_t counter = 0;
 	counter++;
 	// da der Interrupt alle 10 ms kommt und wir aber nur einmal pro Sekunde
-	// wirklich was machen wollen, zÃ¤hlen wir halt bis 100. (100*10 ms = 1 s)
+	// wirklich was machen wollen, zählen wir halt bis 100. (100*10 ms = 1 s)
 	if (counter == 100)	{
 		counter = 0;
 
 		// debug stuff
-		// TFT_Print("Timer lÃ¤uft", 30, 50, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
+		// TFT_Print("Timer läuft", 30, 50, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
 		
 		// timer um eins senken
 		timer--;
@@ -174,47 +174,47 @@ ISR(TIMER0_COMPA_vect)
 		displayTimer(timer);
 		
 		if (timer < 1) {
-			// timer wird IMMER ausgeschaltet, falls benÃ¶tigt, danach wieder angeschaltet.
+			// timer wird IMMER ausgeschaltet, falls benötigt, danach wieder angeschaltet.
 			// timerOff();
 			
 			switch (state) {
 				case 3:
-					// Buzzer output fÃ¼r 1 sek
-					buzzerOn();
-					timer = 1;
-					state = 4; // Ã¼bergabe zu state 4
-					// timerOn();
-					break;
+				// Buzzer output für 1 sek
+				buzzerOn();
+				timer = 1;
+				state = 4; // übergabe zu state 4
+				// timerOn();
+				break;
 				case 4:
-					// Pause
-					buzzerOff();
-					// timer = 300; dev
-					timer = pausenzeit;
-					displayMessage(4);
-					state = 5; // Ã¼bergabe zu state 5
-					// timerOn();
-					break;
+				// Pause
+				buzzerOff();
+				// timer = 300; dev
+				timer = pausenzeit;
+				displayMessage(4);
+				state = 5; // übergabe zu state 5
+				// timerOn();
+				break;
 				case 5:
-					// Buzzer output fÃ¼r 1 sek
-					buzzerOn();
-					timer = 1;
-					state = 6; // Ã¼bergabe zu state 6
-					// timerOn();
-					break;
+				// Buzzer output für 1 sek
+				buzzerOn();
+				timer = 1;
+				state = 6; // übergabe zu state 6
+				// timerOn();
+				break;
 				case 6:
-					// Ende
-					buzzerOff();
-					timer = endzeit;
-					displayMessage(5);
-					state = 7; // Ã¼bergabe zu state 7
-					// timerOn();
-					break;
+				// Ende
+				buzzerOff();
+				timer = endzeit;
+				displayMessage(5);
+				state = 7; // übergabe zu state 7
+				// timerOn();
+				break;
 				case 7:
-					// Neustart ist keine Option, die State Machine springt zurÃ¼ck in State
-					timerOff();
-					state = 2;
-					configuration();
-					break;
+				// Neustart ist keine Option, die State Machine springt zurück in State
+				timerOff();
+				state = 2;
+				configuration();
+				break;
 			}
 		}
 		
@@ -225,7 +225,7 @@ ISR(TIMER0_COMPA_vect)
 ISR(PCINT2_vect) {
 	timerOff();
 	timer = 0; // sane
-	// ZurÃ¼ck zur Konfiguration
+	// Zurück zur Konfiguration
 	state = 2;
 	configuration();
 }
@@ -236,37 +236,37 @@ void displayMessage(int messageID) {
 	
 	switch(messageID) {
 		case 0:
-			message1 = "              ";
-			message2 = "              ";
-			break;
+		message1 = "              ";
+		message2 = "              ";
+		break;
 		case 1:
-			message1 = "  Willkommen  ";
-			message2 = "              ";
-			break;
+		message1 = "  Willkommen  ";
+		message2 = "              ";
+		break;
 		case 2:
-			message1 = "Poti drehen   ";
-			message2 = "Button drÃ¼cken";
-			break;
+		message1 = "Poti drehen   ";
+		message2 = "Button drücken";
+		break;
 		case 3:
-			message1 = "Konzentration!";
-			message2 = "Bald geschafft";
-			break;
+		message1 = "Konzentration!";
+		message2 = "Bald geschafft";
+		break;
 		case 4:
-			message1 = "     Pause    ";
-			message2 = "  Bis gleich  ";
-			break;
+		message1 = "     Pause    ";
+		message2 = "  Bis gleich  ";
+		break;
 		case 5:
-			message1 = "  Geschafft!  ";
-			message2 = "   nochmal?   ";
-			break;
+		message1 = "  Geschafft!  ";
+		message2 = "   nochmal?   ";
+		break;
 		default:
-			message1 = "  ! Fehler !  ";
-			message2 = "              ";
-			break;
+		message1 = "  ! Fehler !  ";
+		message2 = "              ";
+		break;
 		
 	}
-	// Nachdem die entsprechende Nachricht eingefÃ¼gt wurde, kann diese
-	// auf das Display Ã¼bertragen werden:
+	// Nachdem die entsprechende Nachricht eingefügt wurde, kann diese
+	// auf das Display übertragen werden:
 	TFT_Print(message1, 4, 94, 2, TFT_16BitDark_Blue, TFT_16BitWhite, TFT_Landscape180);
 	TFT_Print(message2, 4, 114, 2, TFT_16BitDark_Blue, TFT_16BitWhite, TFT_Landscape180);
 }
@@ -289,7 +289,7 @@ uint16_t readPoti(void) {
 
 void configuration(void){
 	displayMessage(2);
-	// messwert Ã¼ber Poti auslesen erhalten
+	// messwert über Poti auslesen erhalten
 	while (!BUTTON_2_PRESS){
 		uint16_t temp = readPoti();
 		
@@ -350,14 +350,14 @@ int main(void){
 	// warten bis knopf losgelassen
 	while (BUTTON_2_PRESS){;};
 	configuration();
-		
+	
 	// ab hier muss die Main() Funktion nichts mehr machen,
 	// wird daher in eine unendliche while true schleife geschickt
 	while(1){;}
 	
 	
 	// char mytext1[] = "00:00";
-	//Ãœbergabe von 7 "Werten": Adresse des 1. Elements von mytext, x1, y1, scale,
+	//Übergabe von 7 "Werten": Adresse des 1. Elements von mytext, x1, y1, scale,
 	// TFT_Print(mytext1, 25, 44, 4, TFT_16BitBlack, TFT_16BitWhite, TFT_Landscape180);		//Schriftfarbe, Hintergrundfarbe, Display-Orientierung
 }
 
