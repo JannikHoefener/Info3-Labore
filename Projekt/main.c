@@ -33,6 +33,9 @@
 #define BUZZER_ON	PORTC|= (1<<3)
 #define BUZZER_OFF	PORTC &= ~(1<<3)
 
+#define US_TRIGGER_ON	PORTC|= (1<<4);
+#define US_TRIGGER_OFF	PORTC &= ~(1<<4);
+
 uint16_t i;
 unsigned int state = 0;
 unsigned int timer = 0;
@@ -122,9 +125,9 @@ void init(void){
 	ADMUX= 0x100040;// AVCC on; Right adjust;MUXuse A0
 	ADCSRA= 0xC7;// ADC enable; Stop Conversion; No Autotrigger; Interrupt disable; Prescaler= 128 means 125 kHz
 	
-	// PortC 1,2,3 als Output
-	DDRC |=   0b1110;
-	//			3210
+	// PortC 1 & 2 (LEDs), 3 (Buzzer), 4 (Trigger Ultraschallsensor) als Output
+	DDRC |=   0b11110;
+	//			43210
 	
 	// Interrupts aktivieren
 	sei();
@@ -139,16 +142,25 @@ void init(void){
 	TCCR0B |=(1<<CS02) | (1<<CS00);
 	TCCR0B &= ~(1<<CS01);
 	
-	// Button 1 Interrupt
-	PCICR |= (1<<PCIE2); // enable PB Port D interrupt
-	PCMSK2 |= 1<<PCINT17; // enable PB17 interrupt
+	// Button 1 Interrupt - Interrupt auf PCINT17
+	PCICR |= (1<<PCIE2); // enable Port D interrupt
+	PCMSK2 |= 1<<PCINT17; // enable PCINT17 interrupt
+	
+	// Ultraschallsensor Echo Interrupt auf PCINT13 
+	// entsprechend Seite 57 Datenblatt ATMEGA328P
+	// vermutlich fehlerhaft!
+	// PCICR |= (1<<PCIE1); // enable Port C interrupt
+	// PCMSK1 |= (1<<PCINT13); // enable PCINT13 interrupt
 	
 	asm("nop");
 }
 
-// void triggerDistanz(void) {
-// 	_delay_us(10);
-// }
+void triggerDistanz(void) {
+	// Ultraschallsensor Trigger für 10 µs auf HIGH setzen
+	US_TRIGGER_ON;
+	_delay_us(10);
+	US_TRIGGER_OFF;
+}
 
 void timerOn(void){
 	// timer anschalten
@@ -172,8 +184,11 @@ ISR(TIMER0_COMPA_vect)
 	if (counter == 100)	{
 		counter = 0;
 
-		// Ultraschallsensor Messung auslösen
-		// triggerDistanz();
+		// Ultraschallsensor Messung auslösen 
+		if (state == 3) {
+			// nur in der Arbeitsphase (State 3) brauchen wir die Messung
+			triggerDistanz();
+		}
 				
 		// timer um eins senken
 		timer--;
