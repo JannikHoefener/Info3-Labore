@@ -1,6 +1,17 @@
-/******************************************************************************
-* Projektcode auf Basis des Display Projekts aus EMIL
-;******************************************************************************/
+/****************************************************************************
+*	Hochschule für Angewandte Wissenschaften Hamburg						*
+*	Fakultät DMI															*
+*	Department Medientechnik											 	*
+*	Veranstaltung: Informatik  & Elektronik									*
+*****************************************************************************
+*	Projektidee: Pomodoro-Timer												*
+*	Git:	git.lumos.city/haw-ms/inf3-mikrocontroller/						*
+*	Mirror: * coming soon *													*
+*	Doku:	* coming soon *													*
+*****************************************************************************
+*	2359614	Helms, Sören Richard											*
+*	2574970	Hoefener, Jannik												*
+****************************************************************************/
 
 #define F_CPU 16E6
 #include <avr/io.h>
@@ -102,6 +113,10 @@ void init(void){
 	ADMUX= 0x100040;// AVCC on; Right adjust;MUXuse A0
 	ADCSRA= 0xC7;// ADC enable; Stop Conversion; No Autotrigger; Interrupt disable; Prescaler= 128 means 125 kHz
 	
+	// PortC 1,2,3 als Output
+	DDRC |=   0b1110;
+	//			3210
+	
 	// Interrupts aktivieren
 	sei();
 	// Timer0 A Match Disable
@@ -179,42 +194,42 @@ ISR(TIMER0_COMPA_vect)
 			
 			switch (state) {
 				case 3:
-				// Buzzer output für 1 sek
-				buzzerOn();
-				timer = 1;
-				state = 4; // übergabe zu state 4
-				// timerOn();
-				break;
+					// Buzzer output für 1 sek
+					buzzerOn();
+					timer = 1;
+					state = 4; // übergabe zu state 4
+					// timerOn();
+					break;
 				case 4:
-				// Pause
-				buzzerOff();
-				// timer = 300; dev
-				timer = pausenzeit;
-				displayMessage(4);
-				state = 5; // übergabe zu state 5
-				// timerOn();
-				break;
+					// Pause
+					buzzerOff();
+					// timer = 300; dev
+					timer = pausenzeit;
+					displayMessage(4);
+					state = 5; // übergabe zu state 5
+					// timerOn();
+					break;
 				case 5:
-				// Buzzer output für 1 sek
-				buzzerOn();
-				timer = 1;
-				state = 6; // übergabe zu state 6
-				// timerOn();
-				break;
+					// Buzzer output für 1 sek
+					buzzerOn();
+					timer = 1;
+					state = 6; // übergabe zu state 6
+					// timerOn();
+					break;
 				case 6:
-				// Ende
-				buzzerOff();
-				timer = endzeit;
-				displayMessage(5);
-				state = 7; // übergabe zu state 7
-				// timerOn();
-				break;
+					// Ende
+					buzzerOff();
+					timer = endzeit;
+					displayMessage(5);
+					state = 7; // übergabe zu state 7
+					// timerOn();
+					break;
 				case 7:
-				// Neustart ist keine Option, die State Machine springt zurück in State
-				timerOff();
-				state = 2;
-				configuration();
-				break;
+					// Neustart ist keine Option, die State Machine springt zurück in State
+					timerOff();
+					state = 2;
+					configuration();
+					break;
 			}
 		}
 		
@@ -236,33 +251,33 @@ void displayMessage(int messageID) {
 	
 	switch(messageID) {
 		case 0:
-		message1 = "              ";
-		message2 = "              ";
-		break;
+			message1 = "              ";
+			message2 = "              ";
+			break;
 		case 1:
-		message1 = "  Willkommen  ";
-		message2 = "              ";
-		break;
+			message1 = "  Willkommen  ";
+			message2 = "              ";
+			break;
 		case 2:
-		message1 = "Poti drehen   ";
-		message2 = "Button drücken";
-		break;
+			message1 = "Poti drehen   ";
+			message2 = "Button drücken";
+			break;
 		case 3:
-		message1 = "Konzentration!";
-		message2 = "Bald geschafft";
-		break;
+			message1 = "Konzentration!";
+			message2 = "Bald geschafft";
+			break;
 		case 4:
-		message1 = "     Pause    ";
-		message2 = "  Bis gleich  ";
-		break;
+			message1 = "     Pause    ";
+			message2 = "  Bis gleich  ";
+			break;
 		case 5:
-		message1 = "  Geschafft!  ";
-		message2 = "   nochmal?   ";
-		break;
+			message1 = "  Geschafft!  ";
+			message2 = "   nochmal?   ";
+			break;
 		default:
-		message1 = "  ! Fehler !  ";
-		message2 = "              ";
-		break;
+			message1 = "  ! Fehler !  ";
+			message2 = "              ";
+			break;
 		
 	}
 	// Nachdem die entsprechende Nachricht eingefügt wurde, kann diese
