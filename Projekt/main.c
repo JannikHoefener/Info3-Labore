@@ -150,24 +150,26 @@ void timerOff(void){
 }
 
 void buzzerOn(void) {
-	// buzzer anschalten
+	PORTC|= (1<<3);
 }
 void buzzerOff(void) {
-	// buzzer ausschalten
+	PORTC &= ~(1<<3);
 }
 
 void showOff(void) {
 	// LED rot und grün ausschalten
+	PORTC &= ~(1<<1);
+	PORTC &= ~(1<<2);
 }
 
 void showRed(void) {
 	showOff();
-	// rote LED anschalten
+	PORTC|= (1<<2);
 }
 
 void showGreen(void) {
 	showOff();
-	// grüne LED anschalten
+	PORTC|= (1<<1);
 }
 
 // Timer Interrupt alle 10 ms
@@ -194,6 +196,7 @@ ISR(TIMER0_COMPA_vect)
 			
 			switch (state) {
 				case 3:
+					showOff();
 					// Buzzer output für 1 sek
 					buzzerOn();
 					timer = 1;
@@ -201,6 +204,7 @@ ISR(TIMER0_COMPA_vect)
 					// timerOn();
 					break;
 				case 4:
+					showGreen();
 					// Pause
 					buzzerOff();
 					// timer = 300; dev
@@ -210,6 +214,7 @@ ISR(TIMER0_COMPA_vect)
 					// timerOn();
 					break;
 				case 5:
+					showOff();
 					// Buzzer output für 1 sek
 					buzzerOn();
 					timer = 1;
@@ -339,6 +344,7 @@ void configuration(void){
 	// messwert in die Variablen schreiben
 	timer = messwert;
 	displayMessage(0);
+	showRed();
 	
 	timerOn();
 	// entering State 3 - Work Timer Phase
