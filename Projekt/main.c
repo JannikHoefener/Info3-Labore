@@ -24,6 +24,15 @@
 #define BUTTON_2_PRESS !(PINB & (1<<PINB1))
 #define BUTTON_1_PRESS !(PIND & (1<<PIND1))
 
+#define RED_LED_ON	PORTC|= (1<<2);
+#define RED_LED_OFF		PORTC &= ~(1<<2);
+#define GREEN_LED_ON	PORTC|= (1<<1);
+#define GREEN_LED_OFF	PORTC &= ~(1<<1);
+#define ALL_LED_OFF		{RED_LED_OFF; GREEN_LED_OFF;}
+
+#define BUZZER_ON	PORTC|= (1<<3)
+#define BUZZER_OFF	PORTC &= ~(1<<3)
+
 uint16_t i;
 unsigned int state = 0;
 unsigned int timer = 0;
@@ -137,6 +146,10 @@ void init(void){
 	asm("nop");
 }
 
+// void triggerDistanz(void) {
+// 	_delay_us(10);
+// }
+
 void timerOn(void){
 	// timer anschalten
 	TIMSK0 |= (1<<OCIE0A);
@@ -149,29 +162,6 @@ void timerOff(void){
 	OCR0A = 0;
 }
 
-void buzzerOn(void) {
-	PORTC|= (1<<3);
-}
-void buzzerOff(void) {
-	PORTC &= ~(1<<3);
-}
-
-void showOff(void) {
-	// LED rot und grün ausschalten
-	PORTC &= ~(1<<1);
-	PORTC &= ~(1<<2);
-}
-
-void showRed(void) {
-	showOff();
-	PORTC|= (1<<2);
-}
-
-void showGreen(void) {
-	showOff();
-	PORTC|= (1<<1);
-}
-
 // Timer Interrupt alle 10 ms
 ISR(TIMER0_COMPA_vect)
 {
@@ -182,9 +172,9 @@ ISR(TIMER0_COMPA_vect)
 	if (counter == 100)	{
 		counter = 0;
 
-		// debug stuff
-		// TFT_Print("Timer läuft", 30, 50, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
-		
+		// Ultraschallsensor Messung auslösen
+		// triggerDistanz();
+				
 		// timer um eins senken
 		timer--;
 		// display aktualisieren
@@ -196,17 +186,17 @@ ISR(TIMER0_COMPA_vect)
 			
 			switch (state) {
 				case 3:
-					showOff();
+					ALL_LED_OFF;;
 					// Buzzer output für 1 sek
-					buzzerOn();
+					BUZZER_ON;
 					timer = 1;
 					state = 4; // übergabe zu state 4
 					// timerOn();
 					break;
 				case 4:
-					showGreen();
+					GREEN_LED_ON;
 					// Pause
-					buzzerOff();
+					BUZZER_OFF;
 					// timer = 300; dev
 					timer = pausenzeit;
 					displayMessage(4);
@@ -214,16 +204,16 @@ ISR(TIMER0_COMPA_vect)
 					// timerOn();
 					break;
 				case 5:
-					showOff();
+					ALL_LED_OFF;;
 					// Buzzer output für 1 sek
-					buzzerOn();
+					BUZZER_ON;
 					timer = 1;
 					state = 6; // übergabe zu state 6
 					// timerOn();
 					break;
 				case 6:
 					// Ende
-					buzzerOff();
+					BUZZER_OFF;
 					timer = endzeit;
 					displayMessage(5);
 					state = 7; // übergabe zu state 7
@@ -249,6 +239,8 @@ ISR(PCINT2_vect) {
 	state = 2;
 	configuration();
 }
+
+// Pin Change Interrupt für Ultraschallsensor 
 
 void displayMessage(int messageID) {
 	char* message1;
@@ -344,7 +336,7 @@ void configuration(void){
 	// messwert in die Variablen schreiben
 	timer = messwert;
 	displayMessage(0);
-	showRed();
+	RED_LED_ON;
 	
 	timerOn();
 	// entering State 3 - Work Timer Phase
