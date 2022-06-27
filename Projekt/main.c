@@ -302,13 +302,14 @@ ISR(PCINT1_vect) {
 		// markieren, das eine Messung läuft
 		sonicCounting = 1;
 	} else {
-		// Messung läuft, Messung stoppen, Auswerten
-		sonicTimerOff();
+		// Messung läuft, Auswerten
+		
 		
 		// wenn gemessene Distanz zwischen 0 und grenzwert liegt, Fokus Nachricht einblenden
 		if (sonicTimer < sonicThreshold) { displayMessage(3); }
 		
-		// markieren, dass keine Messung mehr läuft
+		// Messung stoppen, markieren, dass keine Messung mehr läuft
+		sonicTimerOff();
 		sonicCounting = 0;
 	}
 }
