@@ -684,11 +684,11 @@ void sonicTimerOff(void){
      3fc:	08 95       	ret
 
 000003fe <__vector_7>:
-			}
 		}
 	}
 }
 
+// (Sonic) Timer Interrupt alle 58 µs
 ISR(TIMER2_COMPA_vect){
      3fe:	1f 92       	push	r1
      400:	0f 92       	push	r0
@@ -697,7 +697,7 @@ ISR(TIMER2_COMPA_vect){
      406:	11 24       	eor	r1, r1
      408:	8f 93       	push	r24
      40a:	9f 93       	push	r25
-	// einfach den sonicTimer um irgendwas hochzählen
+	// einfach den sonicTimer um eins hochzählen
 	sonicTimer = sonicTimer +1;
      40c:	80 91 5e 05 	lds	r24, 0x055E	; 0x80055e <sonicTimer>
      410:	90 91 5f 05 	lds	r25, 0x055F	; 0x80055f <sonicTimer+0x1>
@@ -1271,7 +1271,7 @@ void configuration(void){
 	OCR2A = 0;
 }
 
-// Timer Interrupt alle 10 ms
+// (Uhrwerk) Timer Interrupt alle 10 ms
 ISR(TIMER0_COMPA_vect)
 {
      754:	1f 92       	push	r1
@@ -1352,16 +1352,15 @@ ISR(TIMER0_COMPA_vect)
      7da:	09 f4       	brne	.+2      	; 0x7de <__vector_14+0x8a>
      7dc:	50 c0       	rjmp	.+160    	; 0x87e <__DATA_REGION_LENGTH__+0x7e>
      7de:	5a c0       	rjmp	.+180    	; 0x894 <__DATA_REGION_LENGTH__+0x94>
-				case 3:
-					ALL_LED_OFF;;
+				case 3:				// Arbeitsphase zu Ende, Übergabe zur Pause	Dauer: 1 Sekunde
+					ALL_LED_OFF;
      7e0:	88 b1       	in	r24, 0x08	; 8
      7e2:	8b 7f       	andi	r24, 0xFB	; 251
      7e4:	88 b9       	out	0x08, r24	; 8
      7e6:	88 b1       	in	r24, 0x08	; 8
      7e8:	8d 7f       	andi	r24, 0xFD	; 253
      7ea:	88 b9       	out	0x08, r24	; 8
-					// Buzzer output für 1 sek
-					BUZZER_ON;
+					BUZZER_ON;		// Buzzer output für 1 s
      7ec:	88 b1       	in	r24, 0x08	; 8
      7ee:	88 60       	ori	r24, 0x08	; 8
      7f0:	88 b9       	out	0x08, r24	; 8
@@ -1370,22 +1369,20 @@ ISR(TIMER0_COMPA_vect)
      7f4:	90 e0       	ldi	r25, 0x00	; 0
      7f6:	90 93 61 05 	sts	0x0561, r25	; 0x800561 <timer+0x1>
      7fa:	80 93 60 05 	sts	0x0560, r24	; 0x800560 <timer>
-					state = 4; // übergabe zu state 4
+					state = 4;		// Übergabe zu state 4
      7fe:	84 e0       	ldi	r24, 0x04	; 4
      800:	80 93 62 05 	sts	0x0562, r24	; 0x800562 <state>
 					break;
      804:	47 c0       	rjmp	.+142    	; 0x894 <__DATA_REGION_LENGTH__+0x94>
-				case 4:
+				case 4:				// Pausenphase
 					GREEN_LED_ON;
      806:	88 b1       	in	r24, 0x08	; 8
      808:	82 60       	ori	r24, 0x02	; 2
      80a:	88 b9       	out	0x08, r24	; 8
-					// Pause
 					BUZZER_OFF;
      80c:	88 b1       	in	r24, 0x08	; 8
      80e:	87 7f       	andi	r24, 0xF7	; 247
      810:	88 b9       	out	0x08, r24	; 8
-					// timer = 300; dev
 					timer = pausenzeit;
      812:	80 91 03 01 	lds	r24, 0x0103	; 0x800103 <pausenzeit>
      816:	90 91 04 01 	lds	r25, 0x0104	; 0x800104 <pausenzeit+0x1>
@@ -1395,20 +1392,19 @@ ISR(TIMER0_COMPA_vect)
      822:	84 e0       	ldi	r24, 0x04	; 4
      824:	90 e0       	ldi	r25, 0x00	; 0
      826:	0e 94 16 02 	call	0x42c	; 0x42c <displayMessage>
-					state = 5; // übergabe zu state 5
+					state = 5;		// Übergabe zu state 5
      82a:	85 e0       	ldi	r24, 0x05	; 5
      82c:	80 93 62 05 	sts	0x0562, r24	; 0x800562 <state>
 					break;
      830:	31 c0       	rjmp	.+98     	; 0x894 <__DATA_REGION_LENGTH__+0x94>
-				case 5:
-					ALL_LED_OFF;;
+				case 5:				// Pausenphase zu Ende, Übergabe zum Ende	Dauer: 1 Sekunde
+					ALL_LED_OFF;
      832:	88 b1       	in	r24, 0x08	; 8
      834:	8b 7f       	andi	r24, 0xFB	; 251
      836:	88 b9       	out	0x08, r24	; 8
      838:	88 b1       	in	r24, 0x08	; 8
      83a:	8d 7f       	andi	r24, 0xFD	; 253
      83c:	88 b9       	out	0x08, r24	; 8
-					// Buzzer output für 1 sek
 					BUZZER_ON;
      83e:	88 b1       	in	r24, 0x08	; 8
      840:	88 60       	ori	r24, 0x08	; 8
@@ -1418,13 +1414,12 @@ ISR(TIMER0_COMPA_vect)
      846:	90 e0       	ldi	r25, 0x00	; 0
      848:	90 93 61 05 	sts	0x0561, r25	; 0x800561 <timer+0x1>
      84c:	80 93 60 05 	sts	0x0560, r24	; 0x800560 <timer>
-					state = 6; // übergabe zu state 6
+					state = 6;		// Übergabe zu state 6
      850:	86 e0       	ldi	r24, 0x06	; 6
      852:	80 93 62 05 	sts	0x0562, r24	; 0x800562 <state>
 					break;
      856:	1e c0       	rjmp	.+60     	; 0x894 <__DATA_REGION_LENGTH__+0x94>
-				case 6:
-					// Ende
+				case 6:				// Endphase, Übergabe zurück zu State 2		Dauer: 10 Sekunden
 					BUZZER_OFF;
      858:	88 b1       	in	r24, 0x08	; 8
      85a:	87 7f       	andi	r24, 0xF7	; 247
@@ -1438,13 +1433,12 @@ ISR(TIMER0_COMPA_vect)
      86e:	85 e0       	ldi	r24, 0x05	; 5
      870:	90 e0       	ldi	r25, 0x00	; 0
      872:	0e 94 16 02 	call	0x42c	; 0x42c <displayMessage>
-					state = 7; // übergabe zu state 7
+					state = 7;		// Übergabe zu state 7
      876:	87 e0       	ldi	r24, 0x07	; 7
      878:	80 93 62 05 	sts	0x0562, r24	; 0x800562 <state>
 					break;
      87c:	0b c0       	rjmp	.+22     	; 0x894 <__DATA_REGION_LENGTH__+0x94>
-				case 7:
-					// Neustart ist keine Option, die State Machine springt zurück in State
+				case 7:				// Die State Machine springt zurück in State 2 (Konfiguration)
 					UHRWERK_OFF;
      87e:	ee e6       	ldi	r30, 0x6E	; 110
      880:	f0 e0       	ldi	r31, 0x00	; 0
@@ -1481,9 +1475,9 @@ ISR(TIMER0_COMPA_vect)
      8b4:	18 95       	reti
 
 000008b6 <__vector_5>:
+	// einfach den sonicTimer um eins hochzählen
 	sonicTimer = sonicTimer +1;
 }
-
 
 // Button 1 Interrupt
 ISR(PCINT2_vect) {
@@ -1518,7 +1512,7 @@ ISR(PCINT2_vect) {
 	state = 2;
      8ec:	82 e0       	ldi	r24, 0x02	; 2
      8ee:	80 93 62 05 	sts	0x0562, r24	; 0x800562 <state>
-	// LEDS ausschalten
+	// alles ausschalten
 	GREEN_LED_OFF;
      8f2:	88 b1       	in	r24, 0x08	; 8
      8f4:	8d 7f       	andi	r24, 0xFD	; 253

@@ -1,0 +1,11 @@
+Wiring
+
+5V  - breadboard red
+GND - breadboard black
+
+PC0 - nowhere
+PC1 - RGB LED green (220 Ohm)
+PC2 - RGB LED red (220 Ohm)
+PC3 - Buzzer +
+PC4 - Sonic Trig
+PC5 - Sonic Echo

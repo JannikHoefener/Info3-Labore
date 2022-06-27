@@ -214,7 +214,7 @@ void sonicTimerOff(void){
 	OCR2A = 0;
 }
 
-// Timer Interrupt alle 10 ms
+// (Uhrwerk) Timer Interrupt alle 10 ms
 ISR(TIMER0_COMPA_vect)
 {
 	static volatile uint8_t counter = 0;
@@ -241,7 +241,6 @@ ISR(TIMER0_COMPA_vect)
 			switch (state) {
 				case 3:				// Arbeitsphase zu Ende, Übergabe zur Pause	Dauer: 1 Sekunde
 					ALL_LED_OFF;
-					
 					BUZZER_ON;		// Buzzer output für 1 s
 					timer = 1;
 					state = 4;		// Übergabe zu state 4
@@ -275,11 +274,11 @@ ISR(TIMER0_COMPA_vect)
 	}
 }
 
+// (Sonic) Timer Interrupt alle 58 µs
 ISR(TIMER2_COMPA_vect){
 	// einfach den sonicTimer um eins hochzählen
 	sonicTimer = sonicTimer +1;
 }
-
 
 // Button 1 Interrupt
 ISR(PCINT2_vect) {
@@ -347,7 +346,6 @@ void displayMessage(int messageID) {
 			message1 = "  ! Fehler !  ";
 			message2 = "              ";
 			break;
-		
 	}
 	// Nachdem die entsprechende Nachricht eingefügt wurde, kann diese
 	// auf das Display übertragen werden:
