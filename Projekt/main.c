@@ -21,6 +21,7 @@
 #include "spi.h"
 #include "tft.h"
 
+// Buttons
 #define BUTTON_2_PRESS	!(PINB & (1<<PINB1))
 #define BUTTON_1_PRESS	!(PIND & (1<<PIND1))
 
@@ -39,6 +40,10 @@
 #define US_TRIGGER_ON	PORTC|= (1<<4);
 #define US_TRIGGER_OFF	PORTC &= ~(1<<4);
 // PC5 : Ultraschall Echo (input)
+
+// Timer0 als Uhrwerk/Antrieb für die State Machine
+#define UHRWERK_ON		{TIMSK0 |= (1<<OCIE0A); OCR0A = 155;}
+#define UHRWERK_OFF		{TIMSK0 &= ~(1<<OCIE0A); OCR0A = 0;}
 
 // Variablendefinitionen
 // uint8	 8 bit	  255
@@ -191,18 +196,6 @@ void triggerDistanz(void) {
 	US_TRIGGER_OFF;
 }
 
-void timerOn(void){
-	// timer anschalten
-	TIMSK0 |= (1<<OCIE0A);
-	OCR0A = 155;
-}
-
-void timerOff(void){
-	// timer ausschalten, contains bug (wayne.)
-	TIMSK0 &= ~(1<<OCIE0A);
-	OCR0A = 0;
-}
-
 void sonicTimerOn(void){
 	// timer  58 µs anschalten
 	TIMSK2 |= (1 << OCIE2A); 
@@ -244,68 +237,57 @@ ISR(TIMER0_COMPA_vect)
 		
 		if (timer < 1) {
 			// timer wird IMMER ausgeschaltet, falls benötigt, danach wieder angeschaltet.
-			// timerOff();
 			
 			switch (state) {
-				case 3:
-					ALL_LED_OFF;;
-					// Buzzer output für 1 sek
-					BUZZER_ON;
+				case 3:				// Arbeitsphase zu Ende, Übergabe zur Pause	Dauer: 1 Sekunde
+					ALL_LED_OFF;
+					
+					BUZZER_ON;		// Buzzer output für 1 s
 					timer = 1;
-					state = 4; // übergabe zu state 4
-					// timerOn();
+					state = 4;		// Übergabe zu state 4
 					break;
-				case 4:
+				case 4:				// Pausenphase
 					GREEN_LED_ON;
-					// Pause
 					BUZZER_OFF;
-					// timer = 300; dev
 					timer = pausenzeit;
 					displayMessage(4);
-					state = 5; // übergabe zu state 5
-					// timerOn();
+					state = 5;		// Übergabe zu state 5
 					break;
-				case 5:
-					ALL_LED_OFF;;
-					// Buzzer output für 1 sek
+				case 5:				// Pausenphase zu Ende, Übergabe zum Ende	Dauer: 1 Sekunde
+					ALL_LED_OFF;
 					BUZZER_ON;
 					timer = 1;
-					state = 6; // übergabe zu state 6
-					// timerOn();
+					state = 6;		// Übergabe zu state 6
 					break;
-				case 6:
-					// Ende
+				case 6:				// Endphase, Übergabe zurück zu State 2		Dauer: 10 Sekunden
 					BUZZER_OFF;
 					timer = endzeit;
 					displayMessage(5);
-					state = 7; // übergabe zu state 7
-					// timerOn();
+					state = 7;		// Übergabe zu state 7
 					break;
-				case 7:
-					// Neustart ist keine Option, die State Machine springt zurück in State
-					timerOff();
+				case 7:				// Die State Machine springt zurück in State 2 (Konfiguration)
+					UHRWERK_OFF;
 					state = 2;
 					configuration();
 					break;
 			}
 		}
-		
 	}
 }
 
 ISR(TIMER2_COMPA_vect){
-	// einfach den sonicTimer um irgendwas hochzählen
+	// einfach den sonicTimer um eins hochzählen
 	sonicTimer = sonicTimer +1;
 }
 
 
 // Button 1 Interrupt
 ISR(PCINT2_vect) {
-	timerOff();
+	UHRWERK_OFF;
 	timer = 0; // sane
 	// Zurück zur Konfiguration
 	state = 2;
-	// LEDS ausschalten
+	// alles ausschalten
 	GREEN_LED_OFF;
 	RED_LED_OFF;
 	BUZZER_OFF;
@@ -428,7 +410,7 @@ void configuration(void){
 	displayMessage(0);
 	RED_LED_ON;
 	
-	timerOn();
+	UHRWERK_ON;
 	// entering State 3 - Work Timer Phase
 	state = 3;
 }
@@ -457,14 +439,4 @@ int main(void){
 	// ab hier muss die Main() Funktion nichts mehr machen,
 	// wird daher in eine unendliche while true schleife geschickt
 	while(1){;}
-	
-	
-	// char mytext1[] = "00:00";
-	//Übergabe von 7 "Werten": Adresse des 1. Elements von mytext, x1, y1, scale,
-	// TFT_Print(mytext1, 25, 44, 4, TFT_16BitBlack, TFT_16BitWhite, TFT_Landscape180);		//Schriftfarbe, Hintergrundfarbe, Display-Orientierung
 }
-
-
-// convert 123 to string [buf]
-// char snum[5];
-// itoa(temp, snum, 10);
