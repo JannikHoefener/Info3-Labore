@@ -21,28 +21,43 @@
 #include "spi.h"
 #include "tft.h"
 
-#define BUTTON_2_PRESS !(PINB & (1<<PINB1))
-#define BUTTON_1_PRESS !(PIND & (1<<PIND1))
+#define BUTTON_2_PRESS	!(PINB & (1<<PINB1))
+#define BUTTON_1_PRESS	!(PIND & (1<<PIND1))
 
-#define RED_LED_ON	PORTC|= (1<<2);
-#define RED_LED_OFF		PORTC &= ~(1<<2);
+// PC1 : RGB LED Grün
 #define GREEN_LED_ON	PORTC|= (1<<1);
 #define GREEN_LED_OFF	PORTC &= ~(1<<1);
+// PC2 : RGB LED Rot
+#define RED_LED_ON		PORTC|= (1<<2);
+#define RED_LED_OFF		PORTC &= ~(1<<2);
+// PC1&2 : RGB LED
 #define ALL_LED_OFF		{RED_LED_OFF; GREEN_LED_OFF;}
-
-#define BUZZER_ON	PORTC|= (1<<3)
-#define BUZZER_OFF	PORTC &= ~(1<<3)
-
+// PC3 : Active Buzzer
+#define BUZZER_ON		PORTC|= (1<<3)
+#define BUZZER_OFF		PORTC &= ~(1<<3)
+// PC4 : Ultraschall Trigger
 #define US_TRIGGER_ON	PORTC|= (1<<4);
 #define US_TRIGGER_OFF	PORTC &= ~(1<<4);
+// PC5 : Ultraschall Echo (input)
 
-uint16_t i;
-unsigned int state = 0;
-unsigned int timer = 0;
-unsigned int messwert = 1200;
+// Variablendefinitionen
+// uint8	 8 bit	  255
+// uint16	16 bit	65535
 
-unsigned int pausenzeit = 6;// default 300 s für 5 Min
-unsigned int endzeit = 10;	// default 10 s
+uint16_t	i;
+uint8_t		state = 0;
+uint16_t	timer = 0;
+uint16_t	messwert = 1200;
+
+uint16_t	pausenzeit = 6;			// default 300 s für 5 Min
+uint16_t	endzeit = 10;			// default 10 s
+
+uint16_t	volatile sonicTimer = 0;		// Zähler für Ultraschallsensor
+uint8_t		volatile sonicCounting = 0;		// läuft eine Messung? (boolean issues problems)
+uint8_t		volatile sonicThreshold = 30;	// grenzwert in centimeter
+
+// Messwert für >300 cm laut Oszilloskop 19,9 ms High
+// Messwert für ca 20 cm laut Oszi ebenfalls 19,9 ms High
 
 void SPI_init()
 {
@@ -126,31 +141,45 @@ void init(void){
 	ADCSRA= 0xC7;// ADC enable; Stop Conversion; No Autotrigger; Interrupt disable; Prescaler= 128 means 125 kHz
 	
 	// PortC 1 & 2 (LEDs), 3 (Buzzer), 4 (Trigger Ultraschallsensor) als Output
-	DDRC |=   0b11110;
-	//			43210
+	// PortC 0 (Poti) und 5 (Echo Ultraschallsensor als Input)
+	DDRC |=   0b011110;
+	//			543210
 	
 	// Interrupts aktivieren
 	sei();
+	
 	// Timer0 A Match Disable
 	TIMSK0 |= (0<<OCIE0A);
 	OCR0A = 0; //OCR => wann match
 	// Configure CTC (Clear Timer on Compare) Mode
-	TCCR0A |= (1<<WGM01);
-	TCCR0A &= ~(1<<WGM00);
-	TCCR0B &= ~(1<<WGM02);
+	TCCR0A |= (1<<WGM01);	// 1
+	TCCR0A &= ~(1<<WGM00);	// 0
+	TCCR0B &= ~(1<<WGM02);	// 0
 	// Prescaler konfigurieren (CPU Faktor reduzieren)
 	TCCR0B |=(1<<CS02) | (1<<CS00);
 	TCCR0B &= ~(1<<CS01);
 	
+	// Timer2 A Match Disable
+	TIMSK2 |= (0 << OCIE2A);
+	OCR2A = 0;	
+	// Configure CTC (Clear Timer on Compare) Mode
+	TCCR2A |= (1 << WGM21);
+	TCCR2A = 0;
+	TCCR2B = 0;
+	TCNT2 = 0;
+	// Prescaler 8
+	TCCR2B |= (1 << CS21);	
+	// Prescaler 32
+	// TCCR2B |= (1 << CS21) | (1 << CS20);
+		
 	// Button 1 Interrupt - Interrupt auf PCINT17
 	PCICR |= (1<<PCIE2); // enable Port D interrupt
 	PCMSK2 |= 1<<PCINT17; // enable PCINT17 interrupt
 	
 	// Ultraschallsensor Echo Interrupt auf PCINT13 
 	// entsprechend Seite 57 Datenblatt ATMEGA328P
-	// vermutlich fehlerhaft!
-	// PCICR |= (1<<PCIE1); // enable Port C interrupt
-	// PCMSK1 |= (1<<PCINT13); // enable PCINT13 interrupt
+	PCICR |= (1<<PCIE1); // enable Port C interrupt
+	PCMSK1 |= (1<<PCINT13); // enable PCINT13 interrupt
 	
 	asm("nop");
 }
@@ -169,9 +198,27 @@ void timerOn(void){
 }
 
 void timerOff(void){
-	// timer ausschalten, contains bug
+	// timer ausschalten, contains bug (wayne.)
 	TIMSK0 &= ~(1<<OCIE0A);
 	OCR0A = 0;
+}
+
+void sonicTimerOn(void){
+	// timer  58 µs anschalten
+	TIMSK2 |= (1 << OCIE2A); 
+	OCR2A = 115; //17241.379 Hz (16000000/((115+1)*8))  Pre  8
+	// timer 116 µs anschalten
+	// TIMSK2 |= (1 << OCIE2A);
+	// OCR2A = 231; // 8620.689 Hz (16000000/((231+1)*8))  Pre  8
+	// timer   5 µs anschalten
+	// TIMSK2 |= (1 << OCIE2A);
+	// OCR2A = 24;	// 20000 Hz (16000000/((24+1)*32)) Pre 32
+}
+
+void sonicTimerOff(void){
+	// timer ausschalten
+	TIMSK2 |= (0 << OCIE2A);
+	OCR2A = 0;
 }
 
 // Timer Interrupt alle 10 ms
@@ -246,16 +293,44 @@ ISR(TIMER0_COMPA_vect)
 	}
 }
 
+ISR(TIMER2_COMPA_vect){
+	// einfach den sonicTimer um irgendwas hochzählen
+	sonicTimer = sonicTimer +1;
+}
+
+
 // Button 1 Interrupt
 ISR(PCINT2_vect) {
 	timerOff();
 	timer = 0; // sane
 	// Zurück zur Konfiguration
 	state = 2;
+	// LEDS ausschalten
+	GREEN_LED_OFF;
+	RED_LED_OFF;
+	BUZZER_OFF;
 	configuration();
 }
 
 // Pin Change Interrupt für Ultraschallsensor 
+ISR(PCINT1_vect) {
+	if (sonicCounting == 0) {
+		// Messung läuft nicht, Messung starten
+		sonicTimer = 0;
+		sonicTimerOn();
+		// markieren, das eine Messung läuft
+		sonicCounting = 1;
+	} else {
+		// Messung läuft, Messung stoppen, Auswerten
+		sonicTimerOff();
+		
+		// wenn gemessene Distanz zwischen 0 und grenzwert liegt, Fokus Nachricht einblenden
+		if (sonicTimer < sonicThreshold) { displayMessage(3); }
+		
+		// markieren, dass keine Messung mehr läuft
+		sonicCounting = 0;
+	}
+}
 
 void displayMessage(int messageID) {
 	char* message1;
@@ -298,9 +373,9 @@ void displayMessage(int messageID) {
 	TFT_Print(message2, 4, 114, 2, TFT_16BitDark_Blue, TFT_16BitWhite, TFT_Landscape180);
 }
 
-void displayTimer(int sekunden) {
-	int minutes = sekunden / 60;
-	int seconds = sekunden % 60;
+void displayTimer(uint16_t sekunden) {
+	uint8_t minutes = sekunden / 60;
+	uint8_t seconds = sekunden % 60;
 	
 	char anzeige[6];
 	snprintf(anzeige, sizeof(anzeige), "%02d:%02d\n", minutes, seconds);
