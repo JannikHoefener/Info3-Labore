@@ -1,16 +1,16 @@
 /****************************************************************************
-*	Hochschule für Angewandte Wissenschaften Hamburg						*
-*	Fakultät DMI															*
-*	Department Medientechnik											 	*
-*	Veranstaltung: Informatik  & Elektronik									*
+*   Hochschule für Angewandte Wissenschaften Hamburg                        *
+*   Fakultät DMI - Department Medientechnik                                 *
+*   Veranstaltung: Informatik  & Elektronik                                 *
 *****************************************************************************
-*	Projektidee: Pomodoro-Timer												*
-*	Git:	git.lumos.city/haw-ms/inf3-mikrocontroller/						*
-*	Mirror: * coming soon *													*
-*	Doku:	* coming soon *													*
+*   Projektidee: Pomodoro-Timer                                             *
+*                                                                           *
+*   Git:    git.lumos.city/haw-ms/inf3-mikrocontroller                      *
+*   Git:    git.haw-hamburg.de/acj316/inf3-pomodoro-timer                   *
+*   Media:  mega.nz/folder/QRNzwS6I#41UNXoJ-3BSbrQg33y9EmA                  *
 *****************************************************************************
-*	2359614	Helms, Sören Richard											*
-*	2574970	Hoefener, Jannik												*
+*   2359614	Helms, Sören Richard                                            *
+*   2574970	Hoefener, Jannik                                                *
 ****************************************************************************/
 
 #define F_CPU 16E6
@@ -53,12 +53,11 @@
 // uint8	 8 bit	  255
 // uint16	16 bit	65535
 
-uint16_t	i;
 uint8_t		state = 0;
 uint16_t	timer = 0;
 uint16_t	messwert = 1200;
 
-uint16_t	pausenzeit = 6;			// default 300 s für 5 Min
+uint16_t	pausenzeit = 300;		// default 300 s für 5 Min
 uint16_t	endzeit = 10;			// default 10 s
 
 uint16_t	volatile sonicTimer = 0;		// Zähler für Ultraschallsensor
@@ -146,8 +145,8 @@ void init(void){
 	
 	// Poti als Input setzen
 	// ADC
-	ADMUX= 0x100040;// AVCC on; Right adjust;MUXuse A0
-	ADCSRA= 0xC7;// ADC enable; Stop Conversion; No Autotrigger; Interrupt disable; Prescaler= 128 means 125 kHz
+	ADMUX= 0x100040;  // AVCC on; Right adjust; MUXuse A0
+	ADCSRA= 0xC7;     // ADC enable; Stop Conversion; No Autotrigger; Interrupt disable; Prescaler= 128 means 125 kHz
 	
 	// PortC 1 & 2 (LEDs), 3 (Buzzer), 4 (Trigger Ultraschallsensor) als Output
 	// PortC 0 (Poti) und 5 (Echo Ultraschallsensor als Input)
@@ -344,8 +343,8 @@ void displayTimer(uint16_t sekunden) {
 }
 
 uint16_t readPoti(void) {
-	ADCSRA|= (1 << ADSC);// Start conversion
-	while(ADCSRA& (1<<ADSC)); // wait while
+	ADCSRA|= (1 << ADSC);			// Start conversion
+	while(ADCSRA& (1<<ADSC));		// wait while
 	return ADC;
 }
 
@@ -356,8 +355,7 @@ void configuration(void){
 		uint16_t temp = readPoti();
 		
 		if (temp < 128) {
-			// messwert = 1200; // 20 Min
-			messwert = 6; // 6 s for dev
+			messwert = 1200; // 20 Min
 			} else if (temp < 256) {
 			messwert = 1500; // 25 Min
 			} else if (temp < 384) {

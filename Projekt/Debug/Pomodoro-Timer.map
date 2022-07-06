@@ -27,11 +27,6 @@ c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/..
 c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/avr5\libgcc.a(_epilogue.o)
                               c:/program files (x86)/atmel/studio/7.0/toolchain/avr8/avr8-gnu-toolchain/bin/../lib/gcc/avr/5.4.0/../../../../avr/lib/avr5\libc.a(snprintf.o) (__epilogue_restores__)
 
-Allocating common symbols
-Common symbol       size              file
-
-i                   0x2               main.o
-
 Discarded input sections
 
  .data          0x00000000        0x0 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.6.364/gcc/dev/atmega328p/avr5/crtatmega328p.o
@@ -45,7 +40,6 @@ Discarded input sections
                 0x00000000        0x1 main.o
  .bss.sonicTimer
                 0x00000000        0x2 main.o
- COMMON         0x00000000        0x2 main.o
  .text          0x00000000        0x0 tft.o
  .data          0x00000000        0x0 tft.o
  .bss           0x00000000        0x0 tft.o
@@ -613,17 +607,17 @@ END GROUP
 .debug_pubnames
  *(.debug_pubnames)
 
-.debug_info     0x00000000     0x1337
+.debug_info     0x00000000     0x1327
  *(.debug_info .gnu.linkonce.wi.*)
  .debug_info    0x00000000      0x5f4 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.6.364/gcc/dev/atmega328p/avr5/crtatmega328p.o
- .debug_info    0x000005f4      0x983 main.o
- .debug_info    0x00000f77      0x3c0 tft.o
+ .debug_info    0x000005f4      0x973 main.o
+ .debug_info    0x00000f67      0x3c0 tft.o
 
-.debug_abbrev   0x00000000      0x993
+.debug_abbrev   0x00000000      0x982
  *(.debug_abbrev)
  .debug_abbrev  0x00000000      0x5a2 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/ATmega_DFP/1.6.364/gcc/dev/atmega328p/avr5/crtatmega328p.o
- .debug_abbrev  0x000005a2      0x2c7 main.o
- .debug_abbrev  0x00000869      0x12a tft.o
+ .debug_abbrev  0x000005a2      0x2b6 main.o
+ .debug_abbrev  0x00000858      0x12a tft.o
 
 .debug_line     0x00000000      0xae0
  *(.debug_line .debug_line.* .debug_line_end)
