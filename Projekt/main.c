@@ -185,10 +185,10 @@ void init(void){
 	PCICR |= (1<<PCIE2); // enable Port D interrupt
 	PCMSK2 |= 1<<PCINT17; // enable PCINT17 interrupt
 	
-	// Ultraschallsensor Echo Interrupt auf PCINT13 
+	// Ultraschallsensor Echo Interrupt auf PCINT13 **deaktiviert, da es nicht funktioniert**
 	// entsprechend Seite 57 Datenblatt ATMEGA328P
-	PCICR |= (1<<PCIE1); // enable Port C interrupt
-	PCMSK1 |= (1<<PCINT13); // enable PCINT13 interrupt
+	// PCICR |= (1<<PCIE1); // enable Port C interrupt
+	// PCMSK1 |= (1<<PCINT13); // enable PCINT13 interrupt
 	
 	asm("nop");
 }
@@ -253,11 +253,11 @@ ISR(TIMER1_COMPA_vect)
 	}
 }
 
-// (Sonic) Timer Interrupt alle 58 µs
-ISR(TIMER2_COMPA_vect){
-	// einfach den sonicTimer um eins hochzählen
-	sonicTimer = sonicTimer +1;
-}
+// (Sonic) Timer Interrupt alle 58 µs **deaktiviert, da es nicht funktioniert**
+// ISR(TIMER2_COMPA_vect){
+// 	// einfach den sonicTimer um eins hochzählen
+// 	sonicTimer = sonicTimer +1;
+// }
 
 // Button 1 Interrupt
 ISR(PCINT2_vect) {
@@ -272,26 +272,26 @@ ISR(PCINT2_vect) {
 	configuration();
 }
 
-// Pin Change Interrupt für Ultraschallsensor 
-ISR(PCINT1_vect) {
-	if (sonicCounting == 0) {
-		// Messung läuft nicht, Messung starten
-		sonicTimer = 0;
-		SONIC_TIMER_ON();
-		// markieren, das eine Messung läuft
-		sonicCounting = 1;
-	} else {
-		// Messung läuft, Auswerten
-		
-		
-		// wenn gemessene Distanz zwischen 0 und grenzwert liegt, Fokus Nachricht einblenden
-		if (sonicTimer < sonicThreshold) { displayMessage(3); }
-		
-		// Messung stoppen, markieren, dass keine Messung mehr läuft
-		SONIC_TIMER_OFF();
-		sonicCounting = 0;
-	}
-}
+// Pin Change Interrupt für Ultraschallsensor **deaktiviert, da es nicht funktioniert**
+// ISR(PCINT1_vect) {
+// 	if (sonicCounting == 0) {
+// 		// Messung läuft nicht, Messung starten
+// 		sonicTimer = 0;
+// 		SONIC_TIMER_ON();
+// 		// markieren, das eine Messung läuft
+// 		sonicCounting = 1;
+// 	} else {
+// 		// Messung läuft, Auswerten
+// 		
+// 		
+// 		// wenn gemessene Distanz zwischen 0 und grenzwert liegt, Fokus Nachricht einblenden
+// 		if (sonicTimer < sonicThreshold) { displayMessage(3); }
+// 		
+// 		// Messung stoppen, markieren, dass keine Messung mehr läuft
+// 		SONIC_TIMER_OFF();
+// 		sonicCounting = 0;
+// 	}
+// }
 
 void displayMessage(int messageID) {
 	char* message1;
