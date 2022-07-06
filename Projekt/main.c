@@ -41,9 +41,13 @@
 #define US_TRIGGER_OFF	PORTC &= ~(1<<4);
 // PC5 : Ultraschall Echo (input)
 
-// Timer0 als Uhrwerk/Antrieb für die State Machine
+// Timer1 als Uhrwerk/Antrieb für die State Machine
 #define UHRWERK_ON		{TIMSK1 |= (1<<OCIE1A); OCR1A = 15624;}
 #define UHRWERK_OFF		{TIMSK1 &= ~(1<<OCIE1A); OCR1A = 0;}
+	
+// Timer2 für den Ultraschallsensor Echo
+#define SONIC_TIMER_ON	{TIMSK2 |= (1 << OCIE2A); OCR2A = 115;} //17241.379 Hz (16000000/((115+1)*8))  Pre  8
+#define SONIC_TIMER_OFF	{TIMSK2 |= (0 << OCIE2A); OCR2A = 0;}
 
 // Variablendefinitionen
 // uint8	 8 bit	  255
@@ -196,24 +200,6 @@ void triggerDistanz(void) {
 	US_TRIGGER_OFF;
 }
 
-void sonicTimerOn(void){
-	// timer  58 µs anschalten
-	TIMSK2 |= (1 << OCIE2A); 
-	OCR2A = 115; //17241.379 Hz (16000000/((115+1)*8))  Pre  8
-	// timer 116 µs anschalten
-	// TIMSK2 |= (1 << OCIE2A);
-	// OCR2A = 231; // 8620.689 Hz (16000000/((231+1)*8))  Pre  8
-	// timer   5 µs anschalten
-	// TIMSK2 |= (1 << OCIE2A);
-	// OCR2A = 24;	// 20000 Hz (16000000/((24+1)*32)) Pre 32
-}
-
-void sonicTimerOff(void){
-	// timer ausschalten
-	TIMSK2 |= (0 << OCIE2A);
-	OCR2A = 0;
-}
-
 // (Uhrwerk) Timer Interrupt alle 1 s
 // OCR 15624 = 1 Hz weil: (16000000/((15624+1)*1024))=1Hz
 ISR(TIMER1_COMPA_vect)
@@ -291,7 +277,7 @@ ISR(PCINT1_vect) {
 	if (sonicCounting == 0) {
 		// Messung läuft nicht, Messung starten
 		sonicTimer = 0;
-		sonicTimerOn();
+		SONIC_TIMER_ON();
 		// markieren, das eine Messung läuft
 		sonicCounting = 1;
 	} else {
@@ -302,7 +288,7 @@ ISR(PCINT1_vect) {
 		if (sonicTimer < sonicThreshold) { displayMessage(3); }
 		
 		// Messung stoppen, markieren, dass keine Messung mehr läuft
-		sonicTimerOff();
+		SONIC_TIMER_OFF();
 		sonicCounting = 0;
 	}
 }
@@ -387,14 +373,7 @@ void configuration(void){
 			} else {
 			messwert = 3300; // 55 Min
 		}
-		
 		displayTimer(messwert);
-		
-		char snum[5];
-		itoa(messwert, snum, 10);
-		
-		
-		// TFT_Print(snum, 30, 30, 2, TFT_16BitOrange, TFT_16BitWhite, TFT_Landscape180);
 	}
 	
 	// messwert in die Variablen schreiben
@@ -411,8 +390,6 @@ int main(void){
 	// State 0 - Init Phase
 	state = 0;
 	init();
-	
-	// todo: Serial Out?
 	
 	// State 1 - Willkommen Nachricht
 	state = 1;
