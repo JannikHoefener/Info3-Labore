@@ -1,7 +1,7 @@
 /****************************************************************************
 *   Hochschule für Angewandte Wissenschaften Hamburg                        *
 *   Fakultät DMI - Department Medientechnik                                 *
-*   Veranstaltung: Informatik  & Elektronik                                 *
+*   Veranstaltung: Informatik & Elektronik                                  *
 *****************************************************************************
 *   Projektidee: Pomodoro-Timer                                             *
 *                                                                           *
