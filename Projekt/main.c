@@ -42,8 +42,8 @@
 // PC5 : Ultraschall Echo (input)
 
 // Timer0 als Uhrwerk/Antrieb für die State Machine
-#define UHRWERK_ON		{TIMSK0 |= (1<<OCIE0A); OCR0A = 155;}
-#define UHRWERK_OFF		{TIMSK0 &= ~(1<<OCIE0A); OCR0A = 0;}
+#define UHRWERK_ON		{TIMSK1 |= (1<<OCIE1A); OCR1A = 15624;}
+#define UHRWERK_OFF		{TIMSK1 &= ~(1<<OCIE1A); OCR1A = 0;}
 
 // Variablendefinitionen
 // uint8	 8 bit	  255
@@ -153,16 +153,16 @@ void init(void){
 	// Interrupts aktivieren
 	sei();
 	
-	// Timer0 A Match Disable
-	TIMSK0 |= (0<<OCIE0A);
-	OCR0A = 0; //OCR => wann match
-	// Configure CTC (Clear Timer on Compare) Mode
-	TCCR0A |= (1<<WGM01);	// 1
-	TCCR0A &= ~(1<<WGM00);	// 0
-	TCCR0B &= ~(1<<WGM02);	// 0
-	// Prescaler konfigurieren (CPU Faktor reduzieren)
-	TCCR0B |=(1<<CS02) | (1<<CS00);
-	TCCR0B &= ~(1<<CS01);
+	// Timer1 A Match Disable
+	TIMSK1 &= ~(1 << OCIE1A);
+	OCR1A = 0;
+	// configure CTC
+	TCCR1A = 0;
+	TCCR1B = 0;
+	TCNT1 = 0;
+	TCCR1B |= (1<<WGM12);
+	// Prescaler 1024
+	TCCR1B |= (1<<CS12) | (1<<CS10);
 	
 	// Timer2 A Match Disable
 	TIMSK2 |= (0 << OCIE2A);
@@ -214,62 +214,55 @@ void sonicTimerOff(void){
 	OCR2A = 0;
 }
 
-// (Uhrwerk) Timer Interrupt alle 10 ms
-ISR(TIMER0_COMPA_vect)
+// (Uhrwerk) Timer Interrupt alle 1 s
+// OCR 15624 = 1 Hz weil: (16000000/((15624+1)*1024))=1Hz
+ISR(TIMER1_COMPA_vect)
 {
-	static volatile uint8_t counter = 0;
-	counter++;
-	// da der Interrupt alle 10 ms kommt und wir aber nur einmal pro Sekunde
-	// wirklich was machen wollen, zählen wir halt bis 100. (100*10 ms = 1 s)
-	if (counter == 100)	{
-		counter = 0;
-
-		// Ultraschallsensor Messung auslösen 
-		if (state == 3) {
-			// nur in der Arbeitsphase (State 3) brauchen wir die Messung
-			triggerDistanz();
-		}
+	// Ultraschallsensor Messung auslösen 
+	if (state == 3) {
+		// nur in der Arbeitsphase (State 3) brauchen wir die Messung
+		triggerDistanz();
+	}
 				
-		// timer um eins senken
-		timer--;
-		// display aktualisieren
-		displayTimer(timer);
+	// timer um eins senken
+	timer--;
+	// display aktualisieren
+	displayTimer(timer);
 		
-		if (timer < 1) {
-			// timer wird IMMER ausgeschaltet, falls benötigt, danach wieder angeschaltet.
+	if (timer < 1) {
+		// timer wird IMMER ausgeschaltet, falls benötigt, danach wieder angeschaltet.
 			
-			switch (state) {
-				case 3:				// Arbeitsphase zu Ende, Übergabe zur Pause	Dauer: 1 Sekunde
-					ALL_LED_OFF;
-					BUZZER_ON;		// Buzzer output für 1 s
-					timer = 1;
-					state = 4;		// Übergabe zu state 4
-					break;
-				case 4:				// Pausenphase
-					GREEN_LED_ON;
-					BUZZER_OFF;
-					timer = pausenzeit;
-					displayMessage(4);
-					state = 5;		// Übergabe zu state 5
-					break;
-				case 5:				// Pausenphase zu Ende, Übergabe zum Ende	Dauer: 1 Sekunde
-					ALL_LED_OFF;
-					BUZZER_ON;
-					timer = 1;
-					state = 6;		// Übergabe zu state 6
-					break;
-				case 6:				// Endphase, Übergabe zurück zu State 2		Dauer: 10 Sekunden
-					BUZZER_OFF;
-					timer = endzeit;
-					displayMessage(5);
-					state = 7;		// Übergabe zu state 7
-					break;
-				case 7:				// Die State Machine springt zurück in State 2 (Konfiguration)
-					UHRWERK_OFF;
-					state = 2;
-					configuration();
-					break;
-			}
+		switch (state) {
+			case 3:				// Arbeitsphase zu Ende, Übergabe zur Pause	Dauer: 1 Sekunde
+				ALL_LED_OFF;
+				BUZZER_ON;		// Buzzer output für 1 s
+				timer = 1;
+				state = 4;		// Übergabe zu state 4
+				break;
+			case 4:				// Pausenphase
+				GREEN_LED_ON;
+				BUZZER_OFF;
+				timer = pausenzeit;
+				displayMessage(4);
+				state = 5;		// Übergabe zu state 5
+				break;
+			case 5:				// Pausenphase zu Ende, Übergabe zum Ende	Dauer: 1 Sekunde
+				ALL_LED_OFF;
+				BUZZER_ON;
+				timer = 1;
+				state = 6;		// Übergabe zu state 6
+				break;
+			case 6:				// Endphase, Übergabe zurück zu State 2		Dauer: 10 Sekunden
+				BUZZER_OFF;
+				timer = endzeit;
+				displayMessage(5);
+				state = 7;		// Übergabe zu state 7
+				break;
+			case 7:				// Die State Machine springt zurück in State 2 (Konfiguration)
+				UHRWERK_OFF;
+				state = 2;
+				configuration();
+				break;
 		}
 	}
 }
